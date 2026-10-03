@@ -1,0 +1,15 @@
+# cp terraform.tfvars.example terraform.tfvars   (git-ignored)
+project_id = "gke-mc-platform-1234"
+ci_apps_sa = "ci-apps@gke-mc-platform-1234.iam.gserviceaccount.com"
+
+# Personal account / demo settings (cheaper + destroyable)
+spot_nodes          = true
+deletion_protection = false
+enable_sql_replica  = true
+
+# Start in dry-run until CI signs images, then switch to ENFORCED_BLOCK_AND_AUDIT_LOG
+binauthz_enforcement_mode = "DRYRUN_AUDIT_LOG_ONLY"
+
+# Fill after first deploy (terraform output gateway_ip) to enable uptime checks
+uptime_host = ""
+alert_email = ""

@@ -1,0 +1,19 @@
+# Accepted risks - every skip has a reason (reviewed by SecOps, see docs/secops/security-design.md)
+compact: true
+quiet: true
+skip-check:
+  - CKV_GCP_84  # Artifact Registry CMEK: Google-managed encryption accepted for this demo
+  - CKV_GCP_83  # Secret Manager CMEK: same
+  - CKV_GCP_81  # Redis CMEK: same
+  - CKV_GCP_6   # Cloud SQL "require SSL" legacy check - ssl_mode=ENCRYPTED_ONLY is used instead
+  - CKV_GCP_79  # Cloud SQL latest major version: PG16 pinned deliberately
+  - CKV_GCP_65  # GKE Google Groups RBAC: personal account has no Workspace groups
+  - CKV_GCP_66  # GKE Binary Authorization legacy field: we use evaluation_mode (newer API)
+  - CKV_GCP_13  # GKE client cert: disabled by default on modern GKE, field deprecated
+  - CKV_GCP_24  # PodSecurityPolicy: removed in k8s 1.25, replaced by Pod Security Admission
+  - CKV_GCP_69  # GKE metadata server: set on node pool (workload_metadata_config), check looks at cluster
+  - CKV_GCP_68  # Secure boot: set on node pool shielded_instance_config
+  - CKV_GCP_22  # COS image: set on node pool
+  - CKV_GCP_62  # State bucket access logs: audit logs used instead
+  - CKV_GCP_78  # State bucket versioning: enabled (false positive on older checkov)
+  - CKV2_GCP_18 # VPC firewall "allow all internal": scoped to our own node/pod CIDRs only
