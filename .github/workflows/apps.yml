@@ -1,0 +1,114 @@
+name: apps
+
+on:
+  pull_request:
+    paths: ["apps/**", "k8s/**", "scripts/deploy.sh", ".github/workflows/apps.yml"]
+  push:
+    branches: [main]
+    paths: ["apps/**", "k8s/**", "scripts/deploy.sh", ".github/workflows/apps.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: apps-prod
+  cancel-in-progress: false
+
+env:
+  REGISTRY: us-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/apps
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: lint + smoke test
+        working-directory: apps
+        env:
+          ENABLE_TRACING: "false"
+          ENABLE_PROFILER: "false"
+          ENABLE_FIRESTORE: "false"
+          GOOGLE_CLOUD_PROJECT: ci
+          CLUSTER_NAME: ci
+          CLUSTER_REGION: ci
+        run: |
+          pip install -q -r requirements.txt ruff
+          ruff check .
+          for app in app1 app2; do
+            PYTHONPATH=.:$app python -c "
+          import main
+          c = main.app.test_client()
+          assert c.get('/healthz').status_code == 200
+          assert c.get('/$app/').status_code == 200
+          assert c.get('/$app/error').status_code == 500
+          assert c.get('/nope').status_code == 404
+          print('$app OK')"
+          done
+      - name: validate manifests
+        run: |
+          for d in k8s/base/app1 k8s/base/app2 k8s/gateway; do kubectl kustomize "$d" > /dev/null; done
+
+  build-sign-deploy:
+    needs: test
+    # Also skip until bootstrap has set the repo variables
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.GCP_WIF_PROVIDER != ''
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_APPS_SA }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+        with:
+          install_components: gke-gcloud-auth-plugin,kubectl
+
+      - name: docker login (Artifact Registry)
+        run: gcloud auth configure-docker us-docker.pkg.dev --quiet
+
+      - name: build + push
+        run: |
+          for app in app1 app2; do
+            docker build --build-arg APP=$app --build-arg VERSION=${GITHUB_SHA::7} \
+              -t "$REGISTRY/$app:${GITHUB_SHA}" apps/
+            docker push "$REGISTRY/$app:${GITHUB_SHA}"
+          done
+
+      - name: vulnerability gate (on-demand scan, block CRITICAL)
+        run: |
+          for app in app1 app2; do
+            scan=$(gcloud artifacts docker images scan "$REGISTRY/$app:${GITHUB_SHA}" \
+                    --remote --format='value(response.scan)')
+            crit=$(gcloud artifacts docker images list-vulnerabilities "$scan" \
+                    --format='value(vulnerability.effectiveSeverity)' | grep -c CRITICAL || true)
+            echo "$app CRITICAL vulnerabilities: $crit"
+            if [ "$crit" -gt 0 ]; then echo "::error::$app has CRITICAL vulnerabilities"; exit 1; fi
+          done
+
+      - name: attest (Binary Authorization)
+        run: |
+          for app in app1 app2; do
+            digest=$(gcloud artifacts docker images describe "$REGISTRY/$app:${GITHUB_SHA}" \
+                      --format='value(image_summary.digest)')
+            gcloud container binauthz attestations sign-and-create \
+              --project="${{ vars.GCP_PROJECT_ID }}" \
+              --artifact-url="$REGISTRY/$app@$digest" \
+              --attestor="build-attestor" \
+              --attestor-project="${{ vars.GCP_PROJECT_ID }}" \
+              --keyversion-project="${{ vars.GCP_PROJECT_ID }}" \
+              --keyversion-location="global" \
+              --keyversion-keyring="binauthz-v1" \
+              --keyversion-key="build-attestor" \
+              --keyversion="1"
+          done
+
+      - name: deploy to both clusters
+        run: bash scripts/deploy.sh "${{ vars.GCP_PROJECT_ID }}" "${GITHUB_SHA}"

@@ -1,0 +1,98 @@
+name: terraform
+
+on:
+  pull_request:
+    paths: ["terraform/**", ".github/workflows/terraform.yml"]
+  push:
+    branches: [main]
+    paths: ["terraform/**", ".github/workflows/terraform.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write       # required to mint the GitHub OIDC token for Workload Identity Federation
+  pull-requests: write  # post the plan as a PR comment
+
+concurrency:
+  group: terraform-prod # never run two applies against the same state
+  cancel-in-progress: false
+
+env:
+  TF_IN_AUTOMATION: "true"
+  WORKDIR: terraform/envs/prod
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.12.2
+      - name: terraform fmt
+        run: terraform fmt -check -recursive terraform
+      - uses: terraform-linters/setup-tflint@v4
+      - name: tflint
+        run: |
+          tflint --init --config "$GITHUB_WORKSPACE/.tflint.hcl"
+          tflint --recursive --config "$GITHUB_WORKSPACE/.tflint.hcl"
+      - name: checkov (IaC security scan)
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: terraform
+          framework: terraform
+          config_file: .checkov.yaml
+
+  plan-apply:
+    needs: static-checks
+    # Skip until bootstrap has run and set the repo variables (avoids a red build on first push)
+    if: vars.GCP_WIF_PROVIDER != ''
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && 'prod' || '' }}
+    defaults:
+      run:
+        working-directory: ${{ env.WORKDIR }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_TF_SA }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.12.2
+
+      - name: init
+        run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
+
+      - name: validate
+        run: terraform validate
+
+      - name: plan
+        id: plan
+        run: |
+          terraform plan -input=false -no-color -out=tfplan \
+            -var="project_id=${{ vars.GCP_PROJECT_ID }}" \
+            -var="ci_apps_sa=${{ vars.GCP_APPS_SA }}" \
+            -var="spot_nodes=true" \
+            -var="deletion_protection=false" \
+            -var="binauthz_enforcement_mode=${{ vars.BINAUTHZ_MODE || 'ENFORCED_BLOCK_AND_AUDIT_LOG' }}" \
+            -var="uptime_host=${{ vars.GATEWAY_IP }}" \
+            -var="alert_email=${{ vars.ALERT_EMAIL }}" | tee plan.txt
+
+      - name: comment plan on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('${{ env.WORKDIR }}/plan.txt', 'utf8');
+            const body = '### Terraform plan\n```\n' + plan.slice(-60000) + '\n```';
+            await github.rest.issues.createComment({ ...context.repo, issue_number: context.issue.number, body });
+
+      - name: apply
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: terraform apply -input=false -auto-approve tfplan
