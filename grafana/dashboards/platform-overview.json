@@ -1,0 +1,151 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_BIGQUERY",
+      "label": "BigQuery",
+      "type": "datasource",
+      "pluginId": "grafana-bigquery-datasource",
+      "pluginName": "Google BigQuery"
+    }
+  ],
+  "title": "GKE Multi-Cluster Platform - Overview",
+  "uid": "gke-mc-overview",
+  "tags": ["gke", "bigquery", "platform"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "refresh": "5m",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "project",
+        "label": "GCP project",
+        "type": "textbox",
+        "query": "PROJECT_ID",
+        "current": { "text": "PROJECT_ID", "value": "PROJECT_ID" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Application error rate (%) by app / cluster",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "grafana-bigquery-datasource", "uid": "${DS_BIGQUERY}" },
+      "fieldConfig": { "defaults": { "unit": "percent" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "format": 0,
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT TIMESTAMP_TRUNC(timestamp, MINUTE) AS time, CONCAT(resource.labels.namespace_name, ' / ', resource.labels.cluster_name) AS series, SAFE_DIVIDE(COUNTIF(severity IN ('ERROR','CRITICAL','ALERT','EMERGENCY')), COUNT(*)) * 100 AS error_rate_pct FROM `${project}.platform_logs.stdout` WHERE $__timeFilter(timestamp) AND resource.labels.namespace_name IN ('app1','app2') AND jsonPayload.httprequest.status IS NOT NULL GROUP BY time, series ORDER BY time"
+        }
+      ],
+      "transformations": [{ "id": "prepareTimeSeries", "options": { "format": "multi" } }]
+    },
+    {
+      "id": 2,
+      "title": "Pod restarts by namespace",
+      "type": "barchart",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "grafana-bigquery-datasource", "uid": "${DS_BIGQUERY}" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": 1,
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT jsonPayload.involvedobject.namespace AS namespace, COUNT(*) AS restarts FROM `${project}.platform_logs.events` WHERE $__timeFilter(timestamp) AND jsonPayload.reason IN ('BackOff','OOMKilling','Unhealthy','Killing') AND jsonPayload.involvedobject.kind = 'Pod' GROUP BY namespace ORDER BY restarts DESC"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Request latency p50 / p95 / p99 (global LB, ms)",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 9 },
+      "datasource": { "type": "grafana-bigquery-datasource", "uid": "${DS_BIGQUERY}" },
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "format": 0,
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT TIMESTAMP_TRUNC(timestamp, MINUTE) AS time, APPROX_QUANTILES(httpRequest.latency * 1000, 100)[OFFSET(50)] AS p50, APPROX_QUANTILES(httpRequest.latency * 1000, 100)[OFFSET(95)] AS p95, APPROX_QUANTILES(httpRequest.latency * 1000, 100)[OFFSET(99)] AS p99 FROM `${project}.platform_logs.requests` WHERE $__timeFilter(timestamp) GROUP BY time ORDER BY time"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Resource utilisation - CPU cores by app / cluster",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 6, "x": 12, "y": 9 },
+      "datasource": { "type": "grafana-bigquery-datasource", "uid": "${DS_BIGQUERY}" },
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 3 }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "format": 0,
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT TIMESTAMP_TRUNC(start_time, HOUR) AS time, CONCAT(namespace, ' / ', cluster_name) AS series, SUM(usage.amount / TIMESTAMP_DIFF(end_time, start_time, SECOND)) AS cpu_cores FROM `${project}.gke_usage.gke_cluster_resource_consumption` WHERE $__timeFilter(start_time) AND namespace IN ('app1','app2') AND resource_name = 'cpu' GROUP BY time, series ORDER BY time"
+        }
+      ],
+      "transformations": [{ "id": "prepareTimeSeries", "options": { "format": "multi" } }]
+    },
+    {
+      "id": 5,
+      "title": "Resource utilisation - memory GiB by app / cluster",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 6, "x": 18, "y": 9 },
+      "datasource": { "type": "grafana-bigquery-datasource", "uid": "${DS_BIGQUERY}" },
+      "fieldConfig": { "defaults": { "unit": "decgbytes", "decimals": 2 }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "format": 0,
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT TIMESTAMP_TRUNC(start_time, HOUR) AS time, CONCAT(namespace, ' / ', cluster_name) AS series, SUM(usage.amount / TIMESTAMP_DIFF(end_time, start_time, SECOND)) / POW(1024, 3) AS memory_gib FROM `${project}.gke_usage.gke_cluster_resource_consumption` WHERE $__timeFilter(start_time) AND namespace IN ('app1','app2') AND resource_name = 'memory' GROUP BY time, series ORDER BY time"
+        }
+      ],
+      "transformations": [{ "id": "prepareTimeSeries", "options": { "format": "multi" } }]
+    },
+    {
+      "id": 6,
+      "title": "Cloud Armor decisions (WAF)",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 18 },
+      "datasource": { "type": "grafana-bigquery-datasource", "uid": "${DS_BIGQUERY}" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": 1,
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT IFNULL(jsonPayload.enforcedsecuritypolicy.outcome, 'NONE') AS outcome, COUNT(*) AS requests FROM `${project}.platform_logs.requests` WHERE $__timeFilter(timestamp) GROUP BY outcome"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Requests served per cluster (traffic distribution)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 16, "x": 8, "y": 18 },
+      "datasource": { "type": "grafana-bigquery-datasource", "uid": "${DS_BIGQUERY}" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": 0,
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT TIMESTAMP_TRUNC(timestamp, MINUTE) AS time, resource.labels.cluster_name AS series, COUNT(*) AS requests FROM `${project}.platform_logs.stdout` WHERE $__timeFilter(timestamp) AND jsonPayload.httprequest.status IS NOT NULL GROUP BY time, series ORDER BY time"
+        }
+      ],
+      "transformations": [{ "id": "prepareTimeSeries", "options": { "format": "multi" } }]
+    }
+  ]
+}
