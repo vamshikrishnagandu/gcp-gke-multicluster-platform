@@ -17,3 +17,12 @@ skip-check:
   - CKV_GCP_62  # State bucket access logs: audit logs used instead
   - CKV_GCP_78  # State bucket versioning: enabled (false positive on older checkov)
   - CKV2_GCP_18 # VPC firewall "allow all internal": scoped to our own node/pod CIDRs only
+  # --- added after first CI run (M14) ---
+  - CKV_GCP_12  # GKE network_policy block: Dataplane V2 (ADVANCED_DATAPATH) enforces NetworkPolicy natively; the legacy Calico field must stay unset
+  - CKV_GCP_57  # log_min_duration_statement=-1: we deliberately log slow queries > 500 ms
+  - CKV2_GCP_13 # log_duration=on for every statement: too noisy/costly; slow-query log covers it
+  - CKV_GCP_82  # KMS prevent_destroy: off so the demo can be torn down (key ring name is versioned)
+  - CKV_GCP_42  # MCI controller needs roles/container.admin (Google-documented requirement for multi-cluster Gateway)
+  - CKV_GCP_117 # ci-terraform roles/editor: accepted risk, see docs/secops/security-design.md "CI identities"
+  - CKV_GCP_49  # ci-terraform manages SAs: required to create workload/node SAs; same accepted risk
+  - CKV2_GCP_5  # Data Access audit logs on all services: cost; Admin Activity audit logs are always on

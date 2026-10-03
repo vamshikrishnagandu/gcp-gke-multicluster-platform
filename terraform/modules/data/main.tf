@@ -10,6 +10,23 @@
 # -----------------------------------------------------------------------------
 
 # ---------------------------------------------------------------- Cloud SQL
+# Audit + troubleshooting flags (CIS PostgreSQL benchmark, checked by checkov)
+locals {
+  pg_flags = {
+    "cloudsql.iam_authentication" = "on"
+    "cloudsql.enable_pgaudit"     = "on"
+    "pgaudit.log"                 = "ddl,role"
+    log_checkpoints               = "on"
+    log_connections               = "on"
+    log_disconnections            = "on"
+    log_lock_waits                = "on"
+    log_hostname                  = "on"
+    log_statement                 = "ddl"
+    log_min_error_statement       = "error"
+    log_min_messages              = "error"
+  }
+}
+
 resource "google_sql_database_instance" "primary" {
   project             = var.project_id
   name                = "pg-primary-${var.name_suffix}"
@@ -56,13 +73,12 @@ resource "google_sql_database_instance" "primary" {
       record_client_address   = false
     }
 
-    database_flags {
-      name  = "cloudsql.iam_authentication"
-      value = "on"
-    }
-    database_flags {
-      name  = "log_min_duration_statement"
-      value = "500"
+    dynamic "database_flags" {
+      for_each = merge(local.pg_flags, { log_min_duration_statement = "500" }) # slow queries > 500 ms
+      content {
+        name  = database_flags.key
+        value = database_flags.value
+      }
     }
   }
 }
@@ -94,9 +110,12 @@ resource "google_sql_database_instance" "replica" {
       ssl_mode        = "ENCRYPTED_ONLY"
     }
 
-    database_flags {
-      name  = "cloudsql.iam_authentication"
-      value = "on"
+    dynamic "database_flags" {
+      for_each = local.pg_flags
+      content {
+        name  = database_flags.key
+        value = database_flags.value
+      }
     }
   }
 }

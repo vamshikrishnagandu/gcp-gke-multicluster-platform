@@ -140,7 +140,8 @@ resource "google_container_cluster" "this" {
     vulnerability_mode = "VULNERABILITY_BASIC"
   }
 
-  enable_shielded_nodes = true
+  enable_shielded_nodes       = true
+  enable_intranode_visibility = true # pod-to-pod traffic on the same node shows up in VPC flow logs
 
   # GKE usage metering -> BigQuery: CPU/memory requested AND consumed per namespace.
   # Feeds the Grafana "resource utilisation" panel straight from BigQuery.

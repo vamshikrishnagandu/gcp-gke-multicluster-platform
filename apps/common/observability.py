@@ -34,7 +34,7 @@ def _metadata(path: str, default: str) -> str:
         )
         with urllib.request.urlopen(req, timeout=1) as resp:
             return resp.read().decode()
-    except Exception:
+    except OSError:  # URLError/timeouts: not on GCE/GKE (laptop, CI)
         return default
 
 
@@ -112,7 +112,7 @@ def _setup_profiler(log: logging.Logger) -> None:
         import googlecloudprofiler
 
         googlecloudprofiler.start(service=SERVICE, service_version=VERSION, verbose=0)
-    except Exception:  # profiler must never take the app down
+    except Exception:  # noqa: BLE001 - profiler must never take the app down
         log.warning("Cloud Profiler not started", exc_info=False)
 
 
@@ -123,8 +123,8 @@ def _current_trace_ids():
         ctx = trace.get_current_span().get_span_context()
         if ctx.is_valid:
             return f"projects/{PROJECT_ID}/traces/{ctx.trace_id:032x}", f"{ctx.span_id:016x}"
-    except Exception:
-        pass
+    except ImportError:  # tracing libs absent -> log without trace correlation
+        return None, None
     return None, None
 
 

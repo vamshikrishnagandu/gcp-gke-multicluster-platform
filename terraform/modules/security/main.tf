@@ -108,6 +108,7 @@ resource "google_compute_security_policy" "edge" {
       1005 = "scannerdetection-v33-stable"
       1006 = "protocolattack-v33-stable"
       1007 = "sessionfixation-v33-stable"
+      1008 = "cve-canary" # Log4Shell (CVE-2021-44228) and other critical CVEs
     }
     content {
       priority    = rule.key
