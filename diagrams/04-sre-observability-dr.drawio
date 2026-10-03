@@ -1,0 +1,44 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="sre-obs" name="SRE - Observability pipeline">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="t" value="&lt;b&gt;SRE view - signals from pods to dashboards and alerts&lt;/b&gt;" style="text;html=1;fontSize=20;" vertex="1" parent="1"><mxGeometry x="40" y="10" width="900" height="40" as="geometry"/></mxCell>
+        <mxCell id="pod" value="&lt;b&gt;app pod&lt;/b&gt;&lt;br&gt;JSON logs (stdout)&lt;br&gt;OpenTelemetry spans&lt;br&gt;Profiler agent&lt;br&gt;/metrics (Prometheus)&lt;br&gt;stack traces" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;align=left;spacingLeft=8;" vertex="1" parent="1"><mxGeometry x="40" y="100" width="180" height="120" as="geometry"/></mxCell>
+        <mxCell id="lb" value="Global LB request logs&lt;br&gt;(100% sampled, Cloud Armor verdict)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;" vertex="1" parent="1"><mxGeometry x="40" y="260" width="180" height="60" as="geometry"/></mxCell>
+        <mxCell id="cp" value="GKE control plane + nodes + k8s events" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;" vertex="1" parent="1"><mxGeometry x="40" y="350" width="180" height="50" as="geometry"/></mxCell>
+        <mxCell id="cl" value="Cloud Logging" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="320" y="250" width="140" height="50" as="geometry"/></mxCell>
+        <mxCell id="ct" value="Cloud Trace" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="320" y="90" width="140" height="40" as="geometry"/></mxCell>
+        <mxCell id="cpr" value="Cloud Profiler" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="320" y="140" width="140" height="40" as="geometry"/></mxCell>
+        <mxCell id="gmp" value="Managed Prometheus / Cloud Monitoring" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="320" y="190" width="140" height="50" as="geometry"/></mxCell>
+        <mxCell id="er" value="Error Reporting" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="560" y="320" width="140" height="40" as="geometry"/></mxCell>
+        <mxCell id="bq" value="&lt;b&gt;BigQuery&lt;/b&gt;&lt;br&gt;platform_logs (sinks: app, gke, lb)&lt;br&gt;gke_usage (usage metering)" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#e1d5e7;size=10;" vertex="1" parent="1"><mxGeometry x="560" y="200" width="200" height="90" as="geometry"/></mxCell>
+        <mxCell id="gr" value="&lt;b&gt;Grafana Cloud&lt;/b&gt;&lt;br&gt;1 error rate | 2 pod restarts&lt;br&gt;3 p50/p95/p99 | 4 CPU/mem&lt;br&gt;+ WAF + traffic per cluster" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;" vertex="1" parent="1"><mxGeometry x="860" y="190" width="220" height="90" as="geometry"/></mxCell>
+        <mxCell id="al" value="&lt;b&gt;Alerting&lt;/b&gt;&lt;br&gt;uptime from US/EU/APAC&lt;br&gt;LB 5xx &gt; 5%&lt;br&gt;restarts &gt; 3 / 10 min" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;" vertex="1" parent="1"><mxGeometry x="560" y="60" width="200" height="90" as="geometry"/></mxCell>
+        <mxCell id="oc" value="On-call e-mail" style="shape=mxgraph.basic.person;verticalLabelPosition=bottom;verticalAlign=top;html=1;" vertex="1" parent="1"><mxGeometry x="880" y="70" width="40" height="50" as="geometry"/></mxCell>
+        <mxCell id="e1" style="endArrow=classic;html=1;" edge="1" parent="1" source="pod" target="cl"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e2" style="endArrow=classic;html=1;" edge="1" parent="1" source="pod" target="ct"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" style="endArrow=classic;html=1;" edge="1" parent="1" source="pod" target="cpr"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" style="endArrow=classic;html=1;" edge="1" parent="1" source="pod" target="gmp"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5" style="endArrow=classic;html=1;" edge="1" parent="1" source="lb" target="cl"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e6" style="endArrow=classic;html=1;" edge="1" parent="1" source="cp" target="cl"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e7" value="log sinks" style="endArrow=classic;html=1;" edge="1" parent="1" source="cl" target="bq"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e8" value="stack traces" style="endArrow=classic;html=1;" edge="1" parent="1" source="cl" target="er"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e9" value="SQL" style="endArrow=classic;html=1;" edge="1" parent="1" source="bq" target="gr"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e10" style="endArrow=classic;html=1;" edge="1" parent="1" source="gmp" target="al"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e11" style="endArrow=classic;html=1;" edge="1" parent="1" source="al" target="oc"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="sre-dr" name="SRE - HA and Disaster Recovery">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="t" value="&lt;b&gt;Failure domains and recovery&lt;/b&gt;" style="text;html=1;fontSize=20;" vertex="1" parent="1"><mxGeometry x="40" y="10" width="600" height="40" as="geometry"/></mxCell>
+        <mxCell id="tbl" value="&lt;table border=&quot;1&quot; cellpadding=&quot;6&quot; style=&quot;border-collapse:collapse&quot;&gt;&lt;tr&gt;&lt;th&gt;Failure&lt;/th&gt;&lt;th&gt;Automatic response&lt;/th&gt;&lt;th&gt;RTO&lt;/th&gt;&lt;th&gt;RPO&lt;/th&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Pod crash&lt;/td&gt;&lt;td&gt;kubelet restart, readiness removes from NEG&lt;/td&gt;&lt;td&gt;seconds&lt;/td&gt;&lt;td&gt;0&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Node / zone loss&lt;/td&gt;&lt;td&gt;regional cluster, topology spread, PDB, autoscaler&lt;/td&gt;&lt;td&gt;&amp;lt;2 min&lt;/td&gt;&lt;td&gt;0&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Region / cluster loss&lt;/td&gt;&lt;td&gt;Global LB health checks fail over to other cluster&lt;/td&gt;&lt;td&gt;~1 min&lt;/td&gt;&lt;td&gt;0 (stateless)&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Cloud SQL zone loss&lt;/td&gt;&lt;td&gt;HA standby promoted&lt;/td&gt;&lt;td&gt;~60 s&lt;/td&gt;&lt;td&gt;0&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Cloud SQL region loss&lt;/td&gt;&lt;td&gt;MANUAL: promote us-east1 replica (runbook)&lt;/td&gt;&lt;td&gt;~15 min&lt;/td&gt;&lt;td&gt;seconds (async)&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Redis zone loss&lt;/td&gt;&lt;td&gt;STANDARD_HA failover&lt;/td&gt;&lt;td&gt;&amp;lt;1 min&lt;/td&gt;&lt;td&gt;cache (rebuildable)&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Firestore region loss&lt;/td&gt;&lt;td&gt;multi-region nam5, transparent&lt;/td&gt;&lt;td&gt;0&lt;/td&gt;&lt;td&gt;0&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Bad deploy / deletion&lt;/td&gt;&lt;td&gt;rollout undo, Backup for GKE restore, SQL PITR&lt;/td&gt;&lt;td&gt;minutes&lt;/td&gt;&lt;td&gt;&amp;lt;24 h (GKE), seconds (SQL)&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;" style="text;html=1;whiteSpace=wrap;verticalAlign=top;" vertex="1" parent="1"><mxGeometry x="40" y="60" width="1100" height="380" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

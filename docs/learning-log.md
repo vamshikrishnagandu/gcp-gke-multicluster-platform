@@ -115,3 +115,36 @@ gh label create issue-encountered --color D93F0B   # labels used to categorise I
 ```
 - `.gitignore` excludes Terraform state, `*.tfvars` and key files - they can contain secrets.
 - `.terraform.lock.hcl` **is** committed: it pins exact provider versions for reproducible builds.
+
+---
+
+## Phase 1 - Writing the code (all roles)
+
+### Mistakes caught during design / code review
+| # | Mistake | Why it was wrong | Fix | Lesson |
+|---|---|---|---|---|
+| M1 | Logged `deny-all` firewall with no internal allow rule | GKE only opens a cluster's **own** pod range; app2 in us-central1 -> app1 pod in us-east1 (MCS) would be silently dropped | `allow-internal` rule for all node + pod CIDRs | A "secure default" can break features; trace every flow through the firewall |
+| M2 | Assumed `sort(["usc1","use1"])` gives `use1` first | Strings compare character by character: `c` < `e`, so `usc1` comes first | Config cluster = `gke-usc1`; `deploy.sh` can override it with `CONFIG_CLUSTER` | Check assumptions with `terraform console` (`> sort(["usc1","use1"])`) |
+| M3 | Wrote Kustomize JSON-patch "templating" for two apps | Hard to read and fragile (patch paths break when the YAML changes) | Explicit manifests per app | Optimise for readability; two copies beat a clever abstraction |
+| M4 | Catch-all Flask `errorhandler(Exception)` | It also caught `NotFound`, so 404s became 500s and fake errors showed up in Error Reporting | Pass `HTTPException` through | Test the unhappy paths (the CI smoke test now asserts that a missing page returns 404) |
+| M5 | gunicorn `--access-logformat ''` | Printed blank lines; the app already writes JSON access logs | Removed the flag | One log line per request, in one format |
+| M6 | Passed `psa_connection` into a module and used `depends_on = [var.x]` | `depends_on` only accepts resources/modules, not variables | `depends_on = [module.network]` at the caller | Module-level `depends_on` is the tool for ordering across modules |
+| M7 | Grafana resource panel planned on log data | Logs contain no CPU/memory samples | Enabled GKE usage metering -> BigQuery `gke_usage` | Make sure the data exists before designing the panel |
+| M8 | Alert policy written in MQL | MQL is deprecated for new alert policies | Rewritten in PromQL | Check deprecation notices in the provider docs |
+| M9 | LB health check left at the default `GET /` | The apps answer `/` with 404, so every backend looked UNHEALTHY and the LB returned 502s | `HealthCheckPolicy` pointing at `/appN/healthz` | Health check path = a path the app actually serves |
+| M10 | CI SA lacked `ondemandscanning` + `compute.viewer` | Vulnerability gate and Gateway IP lookup would get 403 | Roles added in bootstrap | List every gcloud call a pipeline makes and map it to a role |
+| M11 | Added a new argument to `module "gke"` by hand, so the `=` signs no longer lined up | CI runs `terraform fmt -check`, so the first push would have failed on whitespace alone | Realigned (normally: run `terraform fmt -recursive terraform` before every commit) | Run the formatter locally before committing; better still, add a pre-commit hook |
+| M12 | GCP jobs in CI ran before bootstrap existed | The first push would fail with "workload_identity_provider is required", a red build that tells you nothing | Jobs that need GCP now run only `if: vars.GCP_WIF_PROVIDER != ''`; lint and tests still run on every push | Make CI degrade gracefully when its prerequisites don't exist yet |
+
+### Concepts learned
+- **NEG (Network Endpoint Group):** the LB targets pod IPs directly, skipping node ports and an extra hop.
+- **Fleet:** a group of clusters treated as one. Same namespace + same name = the same service ("namespace sameness").
+- **ServiceExport / ServiceImport:** exporting a Service makes `<svc>.<ns>.svc.clusterset.local` resolve to pods in every cluster.
+- **Binary Authorization:** an admission check. A pod is allowed only if its image *digest* carries a valid signature from our attestor.
+- **Partitioned log tables:** BigQuery only scans the days in the query's time range, which keeps cost proportional to what you ask for.
+- **etcd backups on GKE:** Google manages etcd, so you can't reach it directly. Backup for GKE is the supported equivalent.
+
+---
+
+## Phase 2 - Apply to GCP
+_Append entries here while running the [setup guide](devops/setup-guide.md): command -> what it did -> result -> lesson. Open an `issue-encountered` GitHub Issue for every error._

@@ -1,0 +1,35 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="architect" name="Architect - Solution Architecture">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="&lt;b&gt;Architect view - GCP multi-region GKE platform&lt;/b&gt;" style="text;html=1;fontSize=20;align=left;" vertex="1" parent="1"><mxGeometry x="40" y="10" width="800" height="40" as="geometry"/></mxCell>
+        <mxCell id="users" value="Users (worldwide)" style="shape=mxgraph.basic.person;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="1"><mxGeometry x="760" y="60" width="50" height="60" as="geometry"/></mxCell>
+        <mxCell id="armor" value="Cloud Armor&lt;br&gt;WAF (OWASP CRS) + rate limit + Adaptive Protection" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="640" y="150" width="290" height="50" as="geometry"/></mxCell>
+        <mxCell id="glb" value="Global external Application LB (anycast IP)&lt;br&gt;Multi-cluster Gateway &lt;i&gt;gke-l7-global-external-managed-mc&lt;/i&gt;&lt;br&gt;closest healthy region + automatic failover" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="600" y="225" width="370" height="70" as="geometry"/></mxCell>
+        <mxCell id="vpc" value="VPC platform-vpc (global, custom mode) - Cloud NAT per region - Flow logs" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;dashed=1;verticalAlign=top;align=left;spacingLeft=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="320" width="1500" height="430" as="geometry"/></mxCell>
+        <mxCell id="r1" value="us-central1 - cluster gke-usc1 (config cluster) - private, regional, 3 zones" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="70" y="360" width="640" height="210" as="geometry"/></mxCell>
+        <mxCell id="r1a" value="app1 pods x3+ (HPA 3-12)&lt;br&gt;NEG" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="100" y="420" width="170" height="60" as="geometry"/></mxCell>
+        <mxCell id="r1b" value="app2 pods x3+ (HPA 3-12)&lt;br&gt;NEG" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="300" y="420" width="170" height="60" as="geometry"/></mxCell>
+        <mxCell id="r1c" value="Gateway / HTTPRoute objects&lt;br&gt;MCS ServiceExport" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;" vertex="1" parent="1"><mxGeometry x="500" y="420" width="180" height="60" as="geometry"/></mxCell>
+        <mxCell id="r1d" value="Backup for GKE (daily) - Managed Prometheus - Dataplane V2" style="text;html=1;align=left;" vertex="1" parent="1"><mxGeometry x="100" y="500" width="580" height="30" as="geometry"/></mxCell>
+        <mxCell id="r2" value="us-east1 - cluster gke-use1 - private, regional, 3 zones" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="870" y="360" width="640" height="210" as="geometry"/></mxCell>
+        <mxCell id="r2a" value="app1 pods x3+ (HPA 3-12)&lt;br&gt;NEG" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="900" y="420" width="170" height="60" as="geometry"/></mxCell>
+        <mxCell id="r2b" value="app2 pods x3+ (HPA 3-12)&lt;br&gt;NEG" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="1100" y="420" width="170" height="60" as="geometry"/></mxCell>
+        <mxCell id="r2d" value="Backup for GKE (daily) - Managed Prometheus - Dataplane V2" style="text;html=1;align=left;" vertex="1" parent="1"><mxGeometry x="900" y="500" width="580" height="30" as="geometry"/></mxCell>
+        <mxCell id="sql" value="Cloud SQL PG16 HA (primary, us-central1)&lt;br&gt;PITR, backups stored in us-east1" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;size=10;" vertex="1" parent="1"><mxGeometry x="100" y="600" width="250" height="80" as="geometry"/></mxCell>
+        <mxCell id="redis" value="Memorystore Redis 7.2&lt;br&gt;STANDARD_HA + RDB" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;size=10;" vertex="1" parent="1"><mxGeometry x="400" y="600" width="200" height="80" as="geometry"/></mxCell>
+        <mxCell id="fs" value="Firestore nam5 (multi-region)&lt;br&gt;PITR + daily backups" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;size=10;" vertex="1" parent="1"><mxGeometry x="680" y="600" width="230" height="80" as="geometry"/></mxCell>
+        <mxCell id="replica" value="Cloud SQL cross-region read replica (us-east1)&lt;br&gt;promotable for DR" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;size=10;" vertex="1" parent="1"><mxGeometry x="1000" y="600" width="280" height="80" as="geometry"/></mxCell>
+        <mxCell id="shared" value="&lt;b&gt;Shared services&lt;/b&gt;: Artifact Registry (us multi-region) | Secret Manager (2-region) | Binary Authorization + KMS | Cloud Logging -&gt; BigQuery -&gt; Grafana Cloud | Cloud Trace | Profiler | Error Reporting | Uptime checks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;" vertex="1" parent="1"><mxGeometry x="40" y="780" width="1500" height="50" as="geometry"/></mxCell>
+        <mxCell id="e1" style="endArrow=classic;html=1;" edge="1" parent="1" source="users" target="armor"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e2" style="endArrow=classic;html=1;" edge="1" parent="1" source="armor" target="glb"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" value="/app1 /app2" style="endArrow=classic;html=1;" edge="1" parent="1" source="glb" target="r1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" value="/app1 /app2" style="endArrow=classic;html=1;" edge="1" parent="1" source="glb" target="r2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5" value="async replication" style="endArrow=classic;html=1;dashed=1;" edge="1" parent="1" source="sql" target="replica"><mxGeometry relative="1" as="geometry"><mxPoint x="640" y="720" as="targetPoint"/><Array as="points"><mxPoint x="225" y="720"/><mxPoint x="1140" y="720"/></Array></mxGeometry></mxCell>
+        <mxCell id="e6" value="MCS: app2 -&gt; app1.app1.svc.clusterset.local" style="endArrow=classic;startArrow=classic;html=1;dashed=1;" edge="1" parent="1" source="r1b" target="r2a"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

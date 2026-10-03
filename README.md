@@ -16,17 +16,29 @@ Open-book assessment: a production-style platform on Google Cloud, built entirel
 | Path | Purpose |
 |---|---|
 | `docs/` | Design document, glossary, ADRs (Architecture Decision Records), learning log, runbook |
-| `diagrams/` | draw.io source (`.drawio`) and exported PNGs |
+| `diagrams/` | draw.io source (`.drawio`), one per role |
 | `terraform/bootstrap/` | One-time setup: project, billing, APIs, state bucket, CI identity |
-| `terraform/modules/` | Reusable building blocks (network, gke, fleet, data, security, observability) |
+| `terraform/modules/` | Reusable building blocks (network, gke, fleet, registry, data, security, observability) |
 | `terraform/envs/prod/` | The environment that wires modules together |
 | `apps/` | Source + Dockerfiles for app1 and app2 |
 | `k8s/` | Kubernetes manifests (Kustomize base + per-cluster overlays) |
-| `grafana/` | Dashboard JSON and BigQuery SQL queries |
+| `grafana/` | Dashboard JSON, BigQuery schema and SQL queries |
+| `scripts/` | `deploy.sh` - deploy both apps to both clusters |
 | `.github/` | CI/CD workflows and issue templates |
 
 ## Roles played
-Architect (design) -> Technical Lead (standards, decisions) -> DevOps (Terraform, CI/CD) -> SRE (observability, DR).
+| Role | Document | draw.io diagram |
+|---|---|---|
+| Architect | [solution-design](docs/architect/solution-design.md) | [01-architect-solution](diagrams/01-architect-solution.drawio) |
+| Tech Lead | [engineering-standards](docs/techlead/engineering-standards.md), [ADRs](docs/techlead/adr/) | [02-techlead-repo-and-modules](diagrams/02-techlead-repo-and-modules.drawio) |
+| DevOps | [setup-guide](docs/devops/setup-guide.md) | [03-devops-cicd](diagrams/03-devops-cicd.drawio) |
+| SRE | [observability-and-dr](docs/sre/observability-and-dr.md) | [04-sre-observability-dr](diagrams/04-sre-observability-dr.drawio) |
+| SecOps | [security-design](docs/secops/security-design.md) | [05-secops-security](diagrams/05-secops-security.drawio) |
+
+BigQuery schema and Grafana queries: [grafana/bigquery-schema.md](grafana/bigquery-schema.md).
+
+## Quick start
+See [docs/devops/setup-guide.md](docs/devops/setup-guide.md).
 
 ## Learning
 Every command executed is explained in [docs/learning-log.md](docs/learning-log.md).
