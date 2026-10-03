@@ -1,0 +1,46 @@
+# ---------- Terraform ----------
+# Provider plugins and modules downloaded by `terraform init` (re-downloadable, large)
+.terraform/
+# State files: the "memory" of what Terraform created. Can contain secrets -> never commit.
+# Remote state lives in a GCS bucket instead.
+*.tfstate
+*.tfstate.*
+# Saved plan files (binary, may contain secrets)
+*.tfplan
+tfplan
+# Crash logs
+crash.log
+crash.*.log
+# Real variable values (project IDs, emails). Commit *.tfvars.example instead.
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+# Local override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+# NOTE: .terraform.lock.hcl IS committed - it pins provider versions for everyone.
+
+# ---------- Credentials ----------
+# Service account keys must never be committed
+*-key.json
+*credentials*.json
+sa-*.json
+.env
+.env.*
+
+# ---------- Python (apps) ----------
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# ---------- OS / editor ----------
+.DS_Store
+.idea/
+*.swp
+# draw.io backup files
+*.drawio.bkp
+.$*.drawio*
