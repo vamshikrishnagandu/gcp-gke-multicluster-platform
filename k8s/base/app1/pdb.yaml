@@ -1,0 +1,10 @@
+# Node upgrades / drains may evict at most 1 pod at a time
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: app1
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: app1

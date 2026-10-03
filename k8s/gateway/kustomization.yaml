@@ -1,0 +1,10 @@
+# Applied ONLY to the config cluster (first cluster, see terraform output config_cluster).
+# The Google-managed multi-cluster Gateway controller reads these objects and builds
+# ONE global external Application Load Balancer with NEG backends in every cluster.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - gateway.yaml
+  - routes.yaml
+  - policies.yaml

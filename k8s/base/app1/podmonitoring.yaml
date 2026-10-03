@@ -1,0 +1,13 @@
+# Google Managed Prometheus scrapes /metrics every 30s
+apiVersion: monitoring.googleapis.com/v1
+kind: PodMonitoring
+metadata:
+  name: app1
+spec:
+  selector:
+    matchLabels:
+      app: app1
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
