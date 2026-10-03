@@ -148,3 +148,18 @@ gh label create issue-encountered --color D93F0B   # labels used to categorise I
 
 ## Phase 2 - Apply to GCP
 _Append entries here while running the [setup guide](devops/setup-guide.md): command -> what it did -> result -> lesson. Open an `issue-encountered` GitHub Issue for every error._
+
+### 2.1 Bootstrap (2026-10-03)
+| Step | Command | Result |
+|---|---|---|
+| Billing account | `gcloud billing accounts list` | `01FE8D-...` is OPEN and billed in USD, so `budget_currency = "USD"` |
+| Plan | `terraform plan -out tfplan` | 65 to add (project, 34 APIs, state bucket, WIF, 2 CI SAs + 21 roles, budget) |
+| Apply | `terraform apply tfplan` | Project `gke-mc-platform-100324148` created |
+| GitHub variables | `terraform output -raw gh_variable_commands \| bash` | 5 repo variables set, so the GCP jobs in CI are now active |
+
+### 2.2 Prod env plan
+| # | What went wrong | Symptom | Fix | Lesson |
+|---|---|---|---|---|
+| M13 | `random ~> 3.6` resolved to v3.9.1, which is built with a newer Go that needs **macOS 12+**. This laptop runs macOS 11.7 | `terraform validate`: *Failed to load plugin schemas ... Unrecognized remote plugin message*. Running the binary directly shows `dyld: Symbol not found ... Security.framework` (exit 134) | Pinned `random` to `~> 3.6.0` (v3.6.3) in envs/prod, modules/data and modules/security. `google` v6.50 still works | A `~>` constraint on a minor version still floats to new releases. When a plugin "handshake" fails, run the plugin binary directly to see the real error. Commit `.terraform.lock.hcl` so CI and the laptop use the same build |
+
+Result after the fix: `Plan: 101 to add, 0 to change, 0 to destroy.`
