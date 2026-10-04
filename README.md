@@ -23,7 +23,7 @@ A production-style platform on Google Cloud, built entirely as code. It runs two
 14. [Glossary](#14-glossary)
 15. [Documentation map](#15-documentation-map)
 
-## 1. Overview in plain English
+## 1. Overview
 Think of a restaurant chain with two identical branches (Iowa and South Carolina). A smart receptionist (the load balancer) sends each guest to the nearest open branch, a security guard (Cloud Armor) checks guests at the door, and if one branch closes the guests simply go to the other. The recipes (application code) and building plans (Terraform) are written down, so a new branch can be built the same way. Every change passes automatic quality, security and safety checks before it reaches production.
 
 ### What is live today
