@@ -28,10 +28,10 @@ Regional clusters (3 zones), topology spread, PDB `maxUnavailable: 1`, HPA 3-12,
 | Cluster state (etcd equivalent) | Backup for GKE, daily, app namespaces + volumes + secrets | 14 days |
 | Cloud SQL | automated backups (stored in us-east1) + PITR | 14 backups, 7 days of logs |
 | Firestore | PITR + daily backup schedule | 7 days |
-| Redis | RDB snapshot every 12 hours | latest |
+| Redis | RDB export to versioned US multi-region Cloud Storage every 12 hours; 30-day retention for archived generations | latest + archived versions |
 | Images | Artifact Registry cleanup policies keep the newest 15 versions | 90 days |
 
-Memorystore uses a 1 GB regional `STANDARD_HA` instance with a replica in another zone, automatic zonal failover and RDB snapshots every 12 hours. Native read replicas are region-local and require at least 5 GB nodes, so they scale reads rather than provide cross-region Redis DR. No cross-region replica or restore workflow is provisioned; regional Redis recovery needs a separate design, with its RTO/RPO still to be defined.
+Memorystore uses a 1 GB regional `STANDARD_HA` primary with a replica in another zone and automatic zonal failover. Cloud Scheduler exports the Redis RDB every 12 hours to a versioned US multi-region bucket; archived generations expire after 30 days. This is cold restore, not live cross-region replication. RPO is up to 12 hours after the most recent successful export; Scheduler retries failures three times. RTO is the time to provision and import into the secondary region and has not yet been measured. Apps currently do not consume Redis.
 
 All Kubernetes resources are installed and updated from `charts/app` and `charts/gateway` using Helm. The old `k8s/` paths are empty/untracked and should not be used as a deployment source. CI builds, scans, attests and deploys images by digest; Helm release history is the rollback boundary.
 
@@ -50,6 +50,27 @@ for i in $(seq 20); do curl -s http://$IP/app1/ | jq -r .region; done   # -> us-
 gcloud sql instances promote-replica pg-replica-v1
 # then update the apps' connection name to the replica and re-deploy
 ```
+
+**Redis regional disaster (cold restore):**
+```bash
+# Review the plan before creating the billable us-east1 restore instance.
+terraform -chdir=terraform/envs/prod plan -var='enable_redis_dr_instance=true' -out=tfplan-redis-dr
+terraform -chdir=terraform/envs/prod apply tfplan-redis-dr
+
+# Grant the new instance's persistence identity read access to the backup bucket.
+PROJECT_ID=gke-mc-platform-100324148
+DR_IDENTITY=$(gcloud redis instances describe cache-dr-v1 --region=us-east1 --project="$PROJECT_ID" --format='value(persistenceIamIdentity)')
+gcloud storage buckets add-iam-policy-binding "gs://${PROJECT_ID}-redis-dr" \
+	--member="$DR_IDENTITY" --role=roles/storage.bucketViewer
+gcloud storage buckets add-iam-policy-binding "gs://${PROJECT_ID}-redis-dr" \
+	--member="$DR_IDENTITY" --role=roles/storage.objectViewer
+
+# Importing replaces data on the target instance and temporarily stops it serving.
+gcloud redis instances import "gs://${PROJECT_ID}-redis-dr/latest/cache.rdb" cache-dr-v1 \
+	--region=us-east1 --project="$PROJECT_ID"
+gcloud redis instances describe cache-dr-v1 --region=us-east1 --project="$PROJECT_ID" --format='value(state)'
+```
+Confirm the instance is `READY` and the exported object is recent before switching any Redis clients. No app currently uses this cache, so there is no application endpoint switch in the present deployment. The Terraform variable defaults to `false`; leave it disabled outside recovery to avoid a second instance's ongoing cost.
 
 **Bad release:** prefer reverting the source commit and rerunning the app workflow so Helm remains the source of truth. For an immediate rollback, inspect `helm history app1 -n app1` and `helm rollback app1 <revision> -n app1` in both clusters, then reconcile from Git.
 

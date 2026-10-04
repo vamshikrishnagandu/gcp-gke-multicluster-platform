@@ -264,6 +264,143 @@ resource "google_redis_instance" "cache" {
   }
 }
 
+resource "google_storage_bucket" "redis_dr" {
+  project                     = var.project_id
+  name                        = "${var.project_id}-redis-dr"
+  location                    = "US"
+  uniform_bucket_level_access = true
+  public_access_prevention    = "enforced"
+  force_destroy               = false
+
+  versioning {
+    enabled = true
+  }
+
+  lifecycle_rule {
+    action {
+      type = "Delete"
+    }
+    condition {
+      with_state                 = "ARCHIVED"
+      days_since_noncurrent_time = 30
+    }
+  }
+}
+
+resource "google_storage_bucket_iam_member" "redis_persistence" {
+  bucket = google_storage_bucket.redis_dr.name
+  role   = "roles/storage.objectAdmin"
+  member = google_redis_instance.cache.persistence_iam_identity
+}
+
+resource "google_storage_bucket_iam_member" "redis_persistence_bucket_viewer" {
+  bucket = google_storage_bucket.redis_dr.name
+  role   = "roles/storage.bucketViewer"
+  member = google_redis_instance.cache.persistence_iam_identity
+}
+
+resource "google_service_account" "redis_backup" {
+  project      = var.project_id
+  account_id   = "redis-backup-${var.name_suffix}"
+  display_name = "Redis scheduled RDB export"
+}
+
+resource "google_project_iam_custom_role" "redis_exporter" {
+  project     = var.project_id
+  role_id     = "redisRdbExporter"
+  title       = "Memorystore Redis RDB exporter"
+  description = "Allows scheduled Redis RDB exports; does not manage Redis instances."
+  stage       = "GA"
+  permissions = ["redis.instances.export"]
+}
+
+resource "google_project_iam_member" "redis_exporter" {
+  project = var.project_id
+  role    = google_project_iam_custom_role.redis_exporter.name
+  member  = google_service_account.redis_backup.member
+}
+
+resource "google_project_iam_member" "redis_export_service_usage" {
+  project = var.project_id
+  role    = "roles/serviceusage.serviceUsageConsumer"
+  member  = google_service_account.redis_backup.member
+}
+
+resource "google_cloud_scheduler_job" "redis_export" {
+  project          = var.project_id
+  region           = var.primary_region
+  name             = "redis-rdb-export-${var.name_suffix}"
+  description      = "Export the primary Redis cache to a versioned cross-region bucket every 12 hours."
+  schedule         = "0 */12 * * *"
+  time_zone        = "Etc/UTC"
+  attempt_deadline = "1800s"
+
+  retry_config {
+    retry_count          = 3
+    min_backoff_duration = "60s"
+    max_backoff_duration = "3600s"
+    max_doublings        = 3
+  }
+
+  http_target {
+    http_method = "POST"
+    uri         = "https://redis.googleapis.com/v1/projects/${var.project_id}/locations/${var.primary_region}/instances/${google_redis_instance.cache.name}:export"
+    headers = {
+      "Content-Type" = "application/json"
+    }
+    body = base64encode(jsonencode({
+      outputConfig = {
+        gcsDestination = {
+          uri = "gs://${google_storage_bucket.redis_dr.name}/latest/cache.rdb"
+        }
+      }
+    }))
+
+    oauth_token {
+      service_account_email = google_service_account.redis_backup.email
+      scope                 = "https://www.googleapis.com/auth/cloud-platform"
+    }
+  }
+
+  depends_on = [
+    google_project_iam_member.redis_exporter,
+    google_project_iam_member.redis_export_service_usage,
+    google_storage_bucket_iam_member.redis_persistence,
+    google_storage_bucket_iam_member.redis_persistence_bucket_viewer,
+  ]
+}
+
+resource "google_redis_instance" "cache_dr" {
+  count = var.enable_redis_dr_instance ? 1 : 0
+
+  project            = var.project_id
+  name               = "cache-dr-${var.name_suffix}"
+  region             = var.secondary_region
+  tier               = "STANDARD_HA"
+  memory_size_gb     = var.redis_memory_gb
+  redis_version      = "REDIS_7_2"
+  authorized_network = var.network_id
+  connect_mode       = "PRIVATE_SERVICE_ACCESS"
+  read_replicas_mode = "READ_REPLICAS_DISABLED"
+
+  auth_enabled            = true
+  transit_encryption_mode = "SERVER_AUTHENTICATION"
+
+  persistence_config {
+    persistence_mode    = "RDB"
+    rdb_snapshot_period = "TWELVE_HOURS"
+  }
+
+  maintenance_policy {
+    weekly_maintenance_window {
+      day = "SUNDAY"
+      start_time {
+        hours = 3
+      }
+    }
+  }
+}
+
 # ---------------------------------------------------------------- Firestore
 resource "google_firestore_database" "default" {
   project                           = var.project_id

@@ -90,16 +90,17 @@ module "fleet" {
 }
 
 module "data" {
-  source                 = "../../modules/data"
-  project_id             = var.project_id
-  network_id             = module.network.network_id
-  primary_region         = local.primary_region
-  secondary_region       = local.secondary_region
-  enable_sql_replica     = var.enable_sql_replica
-  app_names              = var.apps
-  app_service_accounts   = module.security.app_service_accounts
-  secret_replica_regions = local.all_regions
-  deletion_protection    = var.deletion_protection
+  source                   = "../../modules/data"
+  project_id               = var.project_id
+  network_id               = module.network.network_id
+  primary_region           = local.primary_region
+  secondary_region         = local.secondary_region
+  enable_sql_replica       = var.enable_sql_replica
+  enable_redis_dr_instance = var.enable_redis_dr_instance
+  app_names                = var.apps
+  app_service_accounts     = module.security.app_service_accounts
+  secret_replica_regions   = local.all_regions
+  deletion_protection      = var.deletion_protection
 
   depends_on = [module.network] # wait for Private Services Access peering
 }

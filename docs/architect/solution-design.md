@@ -37,7 +37,7 @@ See [ADRs](../techlead/adr/). Summary:
 - **Single project, single prod environment**: matches the brief. A real setup would add dev and staging projects using the same modules.
 
 ## 5. Current limitations
-Memorystore is a 1 GB regional `STANDARD_HA` cache with a zone replica, automatic zonal failover and 12-hour RDB snapshots. Its native read replicas are region-local and require at least 5 GB nodes; cross-region Redis replication or a regional restore workflow is not configured. Do not treat Redis as cross-region protected until a separate recovery design is implemented.
+Memorystore remains a 1 GB regional `STANDARD_HA` primary with automatic zonal failover. Cloud Scheduler exports RDB data every 12 hours to a versioned US multi-region Cloud Storage bucket; archived generations are retained for 30 days. This is cold recovery, not synchronous cross-region replication. If an export succeeds on schedule, the recovery point is at most 12 hours old. The `us-east1` Redis instance is created only when recovery is needed, so its RTO is the provisioning plus import time and has not yet been measured. The application currently does not consume Redis.
 
 The Google Cloud Monitoring email notification channel exists but is not verified until the recipient completes Google's verification email.
 

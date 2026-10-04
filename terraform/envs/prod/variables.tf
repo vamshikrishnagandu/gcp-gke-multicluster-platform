@@ -71,6 +71,12 @@ variable "enable_sql_replica" {
   default = true
 }
 
+variable "enable_redis_dr_instance" {
+  description = "Provision a billable cold-restore Redis instance in the secondary region; leave false until recovery is needed."
+  type        = bool
+  default     = false
+}
+
 variable "binauthz_enforcement_mode" {
   type    = string
   default = "ENFORCED_BLOCK_AND_AUDIT_LOG"

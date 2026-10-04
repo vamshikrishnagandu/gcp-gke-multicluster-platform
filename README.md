@@ -41,7 +41,7 @@ BigQuery schema and Grafana queries: [grafana/bigquery-schema.md](grafana/bigque
 Kubernetes resources are managed through `charts/app` and `charts/gateway`. The old `k8s/` directories contain no tracked manifests and are not part of deployment; there is no separate YAML tree to apply by hand.
 
 ## Current operational notes
-Memorystore Redis is a 1 GB regional `STANDARD_HA` instance with zonal automatic failover and 12-hour RDB snapshots. Cross-region Redis replication/recovery is not configured; a regional standby or restore design remains a separate decision. Google Cloud Monitoring's email notification channel also needs the recipient to complete Google's verification link before email alerts can be relied on.
+Memorystore Redis remains a 1 GB regional `STANDARD_HA` primary with zonal failover. Cloud Scheduler exports an RDB to a versioned US multi-region bucket every 12 hours; noncurrent generations are retained for 30 days. The `us-east1` restore instance is opt-in and incurs compute cost only when enabled. Recovery is cold restore, not live cross-region replication; the RPO is up to 12 hours after a successful export, and restore RTO depends on instance creation and import. Google Cloud Monitoring email alerts still require the recipient to click Google's verification link.
 
 Managed Cloud Service Mesh adds an estimated $0.50 per mesh client per month under standalone pricing. The 12 minimum app replicas are currently about $6/month before scale-out or custom metrics; check Cloud Billing for the active plan.
 

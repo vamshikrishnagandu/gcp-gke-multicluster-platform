@@ -22,6 +22,14 @@ output "redis_port" {
   value = google_redis_instance.cache.port
 }
 
+output "redis_dr_backup_bucket" {
+  value = google_storage_bucket.redis_dr.name
+}
+
+output "redis_dr_host" {
+  value = try(google_redis_instance.cache_dr[0].host, null)
+}
+
 output "firestore_database" {
   value = google_firestore_database.default.name
 }

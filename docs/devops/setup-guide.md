@@ -86,6 +86,8 @@ The deployment script reads the `net.gke.io/derived-service` annotation from app
 
 Cloud Service Mesh is managed through Fleet memberships and injects an Envoy sidecar into each app pod. Standalone pricing currently estimates about $0.50 per mesh client per month; at 12 minimum app replicas this is about $6/month, before any custom metrics or scale-out. Confirm current billing terms in Cloud Billing.
 
+Redis cross-region recovery uses Cloud Scheduler to export the regional primary's RDB every 12 hours to a versioned US multi-region bucket. The secondary Redis instance is disabled by default; see the [SRE recovery runbook](../sre/observability-and-dr.md) to provision it and import the latest backup during a regional recovery.
+
 ## 9. Teardown
 ```bash
 cd terraform/envs/prod && terraform destroy     # requires deletion_protection=false

@@ -50,6 +50,14 @@ output "redis_host" {
   value = module.data.redis_host
 }
 
+output "redis_dr_backup_bucket" {
+  value = module.data.redis_dr_backup_bucket
+}
+
+output "redis_dr_host" {
+  value = module.data.redis_dr_host
+}
+
 output "bq_dataset" {
   value = module.observability.bq_dataset
 }

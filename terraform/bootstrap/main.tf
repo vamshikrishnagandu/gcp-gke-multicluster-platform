@@ -38,6 +38,7 @@ locals {
     "cloudkms.googleapis.com",
     "cloudprofiler.googleapis.com",
     "cloudresourcemanager.googleapis.com",
+    "cloudscheduler.googleapis.com",
     "cloudtrace.googleapis.com",
     "compute.googleapis.com",
     "connectgateway.googleapis.com",

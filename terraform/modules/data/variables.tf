@@ -41,6 +41,12 @@ variable "redis_memory_gb" {
   default = 1
 }
 
+variable "enable_redis_dr_instance" {
+  description = "Create a billable secondary Redis instance in secondary_region for cold-restore testing or regional recovery."
+  type        = bool
+  default     = false
+}
+
 variable "firestore_location" {
   description = "Multi-region location for Firestore (nam5 = US multi-region, eur3 = EU)."
   type        = string
