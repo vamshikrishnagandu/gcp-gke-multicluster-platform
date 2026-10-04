@@ -184,8 +184,20 @@ resource "google_iam_workload_identity_pool_provider" "github" {
     "attribute.ref"              = "assertion.ref"
   }
 
-  # Allow same-repo PR plans and jobs approved for the prod environment only.
-  attribute_condition = "assertion.repository == '${var.github_repository}' && (assertion.sub == 'repo:${local.github_repository_owner}/${local.github_repository_name}:pull_request' || assertion.sub == 'repo:${local.github_repository_owner}/${local.github_repository_name}:environment:prod')"
+  # Use immutable IDs and non-sub claims because new GitHub repos include IDs in sub.
+  attribute_condition = <<-EOT
+    assertion.repository == '${var.github_repository}' &&
+    assertion.repository_id == '${var.github_repository_id}' &&
+    assertion.repository_owner_id == '${var.github_repository_owner_id}' &&
+    (
+      assertion.event_name == 'pull_request' ||
+      (
+        assertion.ref == 'refs/heads/main' &&
+        assertion.environment == 'prod' &&
+        (assertion.event_name == 'push' || assertion.event_name == 'workflow_dispatch')
+      )
+    )
+  EOT
 
   oidc {
     issuer_uri = "https://token.actions.githubusercontent.com"

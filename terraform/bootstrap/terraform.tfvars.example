@@ -3,4 +3,6 @@ project_id      = "gke-mc-platform-1234" # must be globally unique
 billing_account = "XXXXXX-XXXXXX-XXXXXX" # gcloud billing accounts list
 budget_amount   = 150
 budget_currency = "USD" # must match the billing account currency
+github_repository_id       = "1402658169" # gh api repos/OWNER/REPO --jq .id
+github_repository_owner_id = "27710189"   # gh api users/OWNER --jq .id
 # org_id        = ""    # personal account -> leave empty

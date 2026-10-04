@@ -2,10 +2,10 @@ name: apps
 
 on:
   pull_request:
-    paths: ["apps/**", "charts/**", "scripts/deploy.sh", ".github/workflows/apps.yml"]
+    paths: ["apps/**", "charts/**", "scripts/deploy.sh", "terraform/bootstrap/**", ".github/workflows/apps.yml"]
   push:
     branches: [main]
-    paths: ["apps/**", "charts/**", "scripts/deploy.sh", ".github/workflows/apps.yml"]
+    paths: ["apps/**", "charts/**", "scripts/deploy.sh", "terraform/bootstrap/**", ".github/workflows/apps.yml"]
   workflow_dispatch:
 
 permissions:

@@ -49,6 +49,26 @@ variable "github_repository" {
   default     = "vamshikrishnagandu/gcp-gke-multicluster-platform"
 }
 
+variable "github_repository_id" {
+  description = "Immutable numeric ID of the GitHub repository allowed to impersonate CI service accounts."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[0-9]+$", var.github_repository_id))
+    error_message = "github_repository_id must be a numeric GitHub repository ID."
+  }
+}
+
+variable "github_repository_owner_id" {
+  description = "Immutable numeric ID of the GitHub user or organization that owns the repository."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[0-9]+$", var.github_repository_owner_id))
+    error_message = "github_repository_owner_id must be a numeric GitHub owner ID."
+  }
+}
+
 variable "budget_amount" {
   description = "Monthly budget used for alert e-mails (does NOT cap spend)."
   type        = number
