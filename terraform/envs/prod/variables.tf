@@ -97,13 +97,13 @@ variable "uptime_host" {
 variable "domain" {
   description = "Public hostname served by the Gateway. Empty = <ip-with-dashes>.nip.io (free wildcard DNS, no registrar needed)."
   type        = string
-  default     = ""
+  default     = "app.vamshicloudlab.com"
 }
 
 variable "dns_zone_domain" {
-  description = "DNS-zone apex you own (e.g. example.com). Set together with domain to create a Cloud DNS zone and the A record; then delegate the zone's nameservers at your registrar."
+  description = "Apex of the domain registered in Cloud Domains. A public Cloud DNS zone and the A record for var.domain are created for it. Empty = no zone."
   type        = string
-  default     = ""
+  default     = "vamshicloudlab.com"
 }
 
 variable "team_members" {

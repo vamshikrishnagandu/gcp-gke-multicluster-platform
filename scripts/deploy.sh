@@ -35,8 +35,9 @@ REDIS_REGION="${REDIS_REGION:-us-central1}"
 SQL_CONNECTION_NAME="$(gcloud sql instances describe "$SQL_INSTANCE" --project "$PROJECT_ID" --format='value(connectionName)')"
 REDIS_HOST="$(gcloud redis instances describe "$REDIS_INSTANCE" --region "$REDIS_REGION" --project "$PROJECT_ID" --format='value(host)')"
 REDIS_PORT="$(gcloud redis instances describe "$REDIS_INSTANCE" --region "$REDIS_REGION" --project "$PROJECT_ID" --format='value(port)')"
+# All platform certificates are attached, so a hostname change rotates without downtime.
 TLS_CERT_NAME="$(gcloud compute ssl-certificates list --project "$PROJECT_ID" \
-  --filter='name~^platform-gw-' --sort-by=~creationTimestamp --limit=1 --format='value(name)')"
+  --filter='name~^platform-gw-' --sort-by=~creationTimestamp --format='value(name)' | paste -sd, -)"
 for v in SQL_CONNECTION_NAME REDIS_HOST TLS_CERT_NAME; do
   [[ -n "${!v}" ]] || { echo "Could not resolve ${v}; run terraform apply first" >&2; exit 1; }
 done
@@ -78,7 +79,7 @@ for entry in "${CLUSTERS[@]}"; do
     helm upgrade --install platform-gateway "${ROOT}/charts/gateway" \
       --namespace gateway-infra --create-namespace \
       --take-ownership --force-conflicts \
-      --set-string "tlsCertName=${TLS_CERT_NAME}" \
+      --set-string "tlsCertName=${TLS_CERT_NAME//,/\\,}" \
       --wait --timeout 10m
   fi
 
@@ -88,5 +89,5 @@ for entry in "${CLUSTERS[@]}"; do
 done
 
 echo "Done. Gateway IP: $(gcloud compute addresses describe platform-gateway-ip --global --project "${PROJECT_ID}" --format='value(address)')"
-echo "HTTPS host: $(gcloud compute ssl-certificates describe "${TLS_CERT_NAME}" --global --project "${PROJECT_ID}" --format='value(managed.domains[0])')"
+echo "HTTPS hosts: $(gcloud compute ssl-certificates list --project "${PROJECT_ID}" --filter='name~^platform-gw-' --format='value(managed.domains[0])' | paste -sd' ' -)"
 echo "The global LB takes ~5-10 minutes to program on first deploy; the managed certificate can take up to ~60 minutes to turn ACTIVE."

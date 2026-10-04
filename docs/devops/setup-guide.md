@@ -57,9 +57,9 @@ HOST=$(cd terraform/envs/prod && terraform output -raw gateway_hostname)
 curl -sS https://$HOST/app1/        # shows which cluster/region answered
 curl -sS https://$HOST/app2/orders  # app2 -> app1 cross-service call; "cache" is hit/miss from Redis
 ```
-`HOST` is `terraform output -raw gateway_hostname` (default `<ip-with-dashes>.nip.io`). The Google-managed certificate can take up to about an hour to turn ACTIVE (`gcloud compute ssl-certificates list`); until then use `curl -k` or HTTP, which only redirects to HTTPS. Port 80 returns a 301 to HTTPS.
+`HOST` is `terraform output -raw gateway_hostname` (`app.vamshicloudlab.com`; with `domain` empty it falls back to `<ip-with-dashes>.nip.io`). The Google-managed certificate can take up to about an hour to turn ACTIVE (`gcloud compute ssl-certificates list`); until then use `curl -k` or HTTP, which only redirects to HTTPS. Port 80 returns a 301 to HTTPS.
 
-To use your own domain, set `domain = "app.example.com"` and `dns_zone_domain = "example.com"` in tfvars, apply, then set the registrar nameservers to `terraform output dns_name_servers`.
+To use another domain, register it first (`gcloud domains registrations register <domain> --cloud-dns-zone=platform-public ...`), set `domain` and `dns_zone_domain` in tfvars, apply, and run `scripts/deploy.sh` so the Gateway attaches the new certificate. When changing hostnames, Terraform cannot delete the old certificate until the Gateway stops using it; apply again after the deploy.
 The deployment script reads the `net.gke.io/derived-service` annotation from app1's MCS ServiceImport in each cluster and passes the mesh-compatible URL (`http://<derived-service>.app1.svc.cluster.local:8080/app1/items`) to app2. It deploys Helm releases by immutable image digest, not tag.
 
 ## 7. Switch on the remaining features
