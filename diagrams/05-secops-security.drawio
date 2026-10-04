@@ -20,7 +20,7 @@
         <mxCell id="pod" value="pod (KSA app2)" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="60" y="680" width="140" height="50" as="geometry"/></mxCell>
         <mxCell id="md" value="GKE metadata server" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="260" y="680" width="160" height="50" as="geometry"/></mxCell>
         <mxCell id="gsa" value="GSA wl-app2&lt;br&gt;short-lived token" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="480" y="680" width="160" height="50" as="geometry"/></mxCell>
-        <mxCell id="sm" value="Secret Manager&lt;br&gt;app2-api-key, redis-auth-string, redis-ca-cert&lt;br&gt;(read by wl-app2 only; 2-region)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;" vertex="1" parent="1"><mxGeometry x="700" y="670" width="280" height="70" as="geometry"/></mxCell>
+        <mxCell id="sm" value="Secret Manager&lt;br&gt;app2-api-key, redis-auth-string, redis-ca-cert&lt;br&gt;(read by wl-app2 only; 2-region)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;" vertex="1" parent="1"><mxGeometry x="760" y="670" width="280" height="70" as="geometry"/></mxCell>
         <mxCell id="e1" value="OIDC" style="endArrow=classic;html=1;" edge="1" parent="1" source="ci" target="wif"><mxGeometry relative="1" as="geometry"/></mxCell>
         <mxCell id="e2" value="impersonate" style="endArrow=classic;html=1;" edge="1" parent="1" source="wif" target="sa"><mxGeometry relative="1" as="geometry"/></mxCell>
         <mxCell id="e3" value="sign" style="endArrow=classic;html=1;" edge="1" parent="1" source="sa" target="kms"><mxGeometry relative="1" as="geometry"/></mxCell>
@@ -28,7 +28,7 @@
         <mxCell id="e5" value="verify" style="endArrow=classic;html=1;" edge="1" parent="1" source="att" target="gke"><mxGeometry relative="1" as="geometry"/></mxCell>
         <mxCell id="e6" style="endArrow=classic;html=1;" edge="1" parent="1" source="pod" target="md"><mxGeometry relative="1" as="geometry"/></mxCell>
         <mxCell id="e7" value="workloadIdentityUser" style="endArrow=classic;html=1;" edge="1" parent="1" source="md" target="gsa"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e8" value="secretAccessor (this secret only)" style="endArrow=classic;html=1;" edge="1" parent="1" source="gsa" target="sm"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e8" value="secretAccessor" style="endArrow=classic;html=1;" edge="1" parent="1" source="gsa" target="sm"><mxGeometry relative="1" as="geometry"/></mxCell>
       </root>
     </mxGraphModel>
   </diagram>
