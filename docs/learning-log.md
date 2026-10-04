@@ -211,3 +211,12 @@ _Append entries here while running the [setup guide](devops/setup-guide.md): com
 | M13 (historical Big Sur issue; resolved for current macOS) | `random ~> 3.6` resolved to v3.9.1, which needs **macOS 12+**; the previous laptop ran macOS 11.7 | On Big Sur, `terraform validate` failed to load plugin schemas and the provider binary reported a missing Security.framework symbol | Temporarily pinned `random` to `~> 3.6.0` (v3.6.3); on macOS 26.6 this cap is removed and v3.9.1 validates | Provider OS requirements matter; keep compatibility workarounds only as long as the supported machines need them. Commit `.terraform.lock.hcl` so CI and developers use reproducible provider builds |
 
 Result after the fix: `Plan: 101 to add, 0 to change, 0 to destroy.`
+
+## Round 4: HTTPS, DNS, subnets, RBAC, data-tier use
+| # | What went wrong | Symptom | Fix | Lesson |
+|---|---|---|---|---|
+| M30 | Changing an uptime check to HTTPS forced a replace | `Error 400 ... please ensure all associated Alert Policies are deleted` | `lifecycle { create_before_destroy = true }` on the uptime check so alert policies move to the new check first | Resources referenced by id by other resources need create-before-destroy |
+| M31 | Changing the gateway hostname replaces the managed certificate | `resourceInUseByAnotherResource` when deleting the old certificate | Attach old and new certificates together (`pre-shared-certs` accepts a comma list), wait for ACTIVE, switch the Gateway, then apply again | Rotate certificates with overlap; Terraform cannot delete a certificate the LB still uses |
+| M32 | Wrong flag for Cloud Domains registration | `unrecognized arguments: --registrant-contact-from-file` | Use `--contact-data-from-file` | Check `gcloud ... --help` before scripting purchases |
+| M33 | Bootstrap state is not on this machine | `terraform plan` in `bootstrap` asked for all variables | Granted the two new CI roles with `gcloud` and recorded them in `bootstrap/main.tf` | Keep bootstrap state in the state bucket (setup guide step 3) |
+| M34 | Helm `--set-string` treats commas as separators | Multiple certificate names would split into a list | Escape commas (`\,`) in `deploy.sh` | Escape list separators in scalar values |

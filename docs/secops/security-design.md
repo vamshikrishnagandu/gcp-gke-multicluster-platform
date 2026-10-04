@@ -10,6 +10,10 @@ Diagram: [`diagrams/05-secops-security.drawio`](../../diagrams/05-secops-securit
 | Private GKE clusters | `enable_private_nodes`, Cloud NAT, IAM-authorised DNS control-plane endpoint |
 | Cloud Armor WAF | `edge-waf` policy, attached via `GCPBackendPolicy` |
 | Binary Authorization | KMS attestor + `REQUIRE_ATTESTATION` policy, enforced on both clusters |
+| TLS in transit | Google-managed certificate terminates HTTPS at the global LB (`app.vamshicloudlab.com`); port 80 only redirects; Cloud SQL `ENCRYPTED_ONLY`; Redis TLS + AUTH |
+| Segregated subnets | Per region: nodes, ops/monitoring and proxy-only (load balancer) subnets; logged deny-all ingress; ops range allowed internally |
+| RBAC for Dev, Ops, SRE | `modules/iam`: Dev read-only, Ops operate (`container.developer`, registry writer, IAP tunnel), SRE observe (monitoring editor, logging, BigQuery read); no owner/editor; bind Google Groups through `team_members` |
+| Database access | app1 logs in to Cloud SQL with IAM auth (`cloudsql.instanceUser`, `SELECT` on `catalog.items` only); the admin password is readable only by the `wl-db-init` schema Job; Redis AUTH/CA secrets readable only by `wl-app2` |
 
 ## Threat model (STRIDE summary)
 | Threat | Mitigation |
@@ -20,7 +24,9 @@ Diagram: [`diagrams/05-secops-security.drawio`](../../diagrams/05-secops-securit
 | L7 DDoS | Rate limit + Adaptive Protection + Google edge |
 | Lateral movement in the cluster | NetworkPolicy default-deny, PSA `restricted`, no SA token automount |
 | Pod escape to node identity | GKE metadata server, least-privilege node SA, shielded nodes |
-| Data exfiltration from the DB | Private IP only, TLS required, IAM DB auth |
+| Data exfiltration from the DB | Private IP only, TLS required, IAM DB auth, read-only grant for the app user |
+| Eavesdropping on user traffic | HTTPS only with a managed certificate; HTTP is redirected; DNSSEC on the zone |
+| Domain hijack or expiry | Registrar lock and WHOIS privacy; auto-renew; registrant email verified |
 | Secret leakage in git | `.gitignore`, no tfvars committed, secrets created by Terraform and never printed |
 
 ## CI identities

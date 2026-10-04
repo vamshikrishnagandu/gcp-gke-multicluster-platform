@@ -63,7 +63,7 @@ To use another domain, register it first (`gcloud domains registrations register
 The deployment script reads the `net.gke.io/derived-service` annotation from app1's MCS ServiceImport in each cluster and passes the mesh-compatible URL (`http://<derived-service>.app1.svc.cluster.local:8080/app1/items`) to app2. It deploys Helm releases by immutable image digest, not tag.
 
 ## 7. Switch on the remaining features
-- Set `uptime_host = "<IP>"` and `alert_email` in tfvars, then run `terraform apply` again.
+- Set `uptime_host` to any non-empty value (for example the gateway IP) and `alert_email` in tfvars, then run `terraform apply` again. Uptime checks probe the HTTPS gateway hostname.
 - In GitHub repository Settings > Secrets and variables > Actions, set repository variable `GATEWAY_IP` to the gateway IP and encrypted repository secret `ALERT_EMAIL` to the alert recipient. CI checks both values before planning and refuses to auto-apply plans containing deletions.
 - The Terraform workflow validates and plans on pull requests; production apply runs only on `main` through the `prod` environment. The app workflow runs Python tests and Helm lint/render, builds and mirrors immutable images, blocks CRITICAL scan findings, creates Binary Authorization attestations, and deploys by digest. Pull requests do not receive cloud credentials.
 - Current production enforces `ENFORCED_BLOCK_AND_AUDIT_LOG`. For a fresh project, keep the initial dry-run mode until CI has produced valid attestations, then set `binauthz_enforcement_mode = "ENFORCED_BLOCK_AND_AUDIT_LOG"`.
