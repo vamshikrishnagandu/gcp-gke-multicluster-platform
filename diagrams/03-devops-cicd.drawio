@@ -5,7 +5,7 @@
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
         <mxCell id="t" value="&lt;b&gt;DevOps view - keyless CI/CD with GitHub Actions&lt;/b&gt;" style="text;html=1;fontSize=20;" vertex="1" parent="1"><mxGeometry x="40" y="10" width="800" height="40" as="geometry"/></mxCell>
-        <mxCell id="dev" value="Developer&lt;br&gt;PR -&gt; main" style="shape=mxgraph.basic.person;fillColor=#dae8fc;verticalLabelPosition=bottom;verticalAlign=top;html=1;" vertex="1" parent="1"><mxGeometry x="50" y="110" width="40" height="50" as="geometry"/></mxCell>
+        <mxCell id="dev" value="Developer&lt;br&gt;PR -&gt; main" style="shape=umlActor;fillColor=#dae8fc;verticalLabelPosition=bottom;verticalAlign=top;html=1;" vertex="1" parent="1"><mxGeometry x="50" y="110" width="40" height="50" as="geometry"/></mxCell>
         <mxCell id="gh" value="GitHub repo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;" vertex="1" parent="1"><mxGeometry x="140" y="110" width="120" height="50" as="geometry"/></mxCell>
         <mxCell id="oidc" value="GitHub OIDC token&lt;br&gt;-&gt; STS -&gt; WIF pool &lt;i&gt;github&lt;/i&gt;&lt;br&gt;repo/owner IDs; main + prod; push/manual only&lt;br&gt;-&gt; impersonate SA" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;" vertex="1" parent="1"><mxGeometry x="560" y="20" width="300" height="80" as="geometry"/></mxCell>
         <mxCell id="tf" value="terraform.yml" style="swimlane;horizontal=0;html=1;fillColor=#dae8fc;" vertex="1" parent="1"><mxGeometry x="300" y="110" width="1150" height="110" as="geometry"/></mxCell>
