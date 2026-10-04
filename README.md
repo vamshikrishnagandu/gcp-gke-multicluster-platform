@@ -7,7 +7,7 @@ A production-style platform on Google Cloud, built entirely as code. It runs two
 > This README mirrors the Confluence page "GCP Multi-Region GKE Platform: Architecture, Decisions & Operations". Keep the two in step.
 
 ## Contents
-1. [Overview in plain English](#1-overview-in-plain-english)
+1. [Overview](#1-overview-in-plain-english)
 2. [Architecture diagrams](#2-architecture-diagrams)
 3. [How a request is handled](#3-how-a-request-is-handled)
 4. [Step-by-step implementation](#4-step-by-step-implementation)
