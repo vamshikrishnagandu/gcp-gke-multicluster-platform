@@ -107,13 +107,17 @@ variable "dns_zone_domain" {
 }
 
 variable "team_members" {
-  description = "Role-based access: members (user:/group:/serviceAccount: prefixed) per team. See modules/iam."
+  description = "Role-based access: members (user:/group:/serviceAccount: prefixed) per team. See modules/iam. Defaults live here, not in tfvars, because CI plans without tfvars."
   type = object({
     developers = optional(list(string), [])
     operators  = optional(list(string), [])
     sres       = optional(list(string), [])
   })
-  default = {}
+  default = {
+    developers = ["user:vamshikh@gmail.com"]
+    operators  = ["user:vamshikh@gmail.com"]
+    sres       = ["user:vamshikh@gmail.com"]
+  }
 }
 
 variable "alert_email" {

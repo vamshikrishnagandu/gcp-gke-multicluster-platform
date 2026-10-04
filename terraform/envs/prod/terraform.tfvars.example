@@ -19,7 +19,8 @@ alert_email = ""
 # domain          = "app.example.com"
 # dns_zone_domain = "example.com"
 
-# Human access by team (use Google Groups). Nobody gets owner/editor; changes go through CI.
+# Human access by team. Defaults are in variables.tf (CI plans without tfvars); change them there so CI agrees.
+# Prefer Google Groups. Nobody gets owner/editor from Terraform; changes go through CI.
 # team_members = {
 #   developers = ["group:devs@example.com"]
 #   operators  = ["group:ops@example.com"]

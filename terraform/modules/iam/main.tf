@@ -49,10 +49,11 @@ locals {
     sres       = var.sres
   }
 
+  # Keyed by role+member so a role shared by several teams is bound once.
   bindings = merge([
     for team, roles in local.team_roles : {
       for pair in setproduct(roles, local.members[team]) :
-      "${team}|${pair[0]}|${pair[1]}" => { role = pair[0], member = pair[1] }
+      "${pair[0]}|${pair[1]}" => { role = pair[0], member = pair[1] }
     }
   ]...)
 }
