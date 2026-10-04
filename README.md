@@ -233,7 +233,7 @@ gcp-gke-multicluster-platform/
 | `gke` | Private regional cluster, node pool (Spot in this demo), Backup for GKE plan | Called twice with `for_each` |
 | `fleet` | Fleet registration, multi-cluster services, managed Cloud Service Mesh | Mesh mode `TRAFFIC_DIRECTOR` |
 | `data` | Cloud SQL (HA + replica), Redis (TLS + AUTH), Firestore + backup, DB admin secret, Redis auth/CA secrets, Redis DR bucket + Scheduler export, `wl-db-init` identity | `enable_redis_dr_instance` stays false until recovery; only app2 reads the Redis secrets |
-| `observability` | Log sinks to BigQuery, usage dataset, HTTPS uptime checks, 4 alert policies, email channel, Grafana identities | Alert email must be verified once |
+| `observability` | Log sinks to BigQuery, usage dataset, HTTPS uptime checks, 2 SLOs (availability, latency), 5 alert policies (incl. SLO burn rate), email channel, Grafana identities | Alert email must be verified once |
 | `iam` | Project role bindings for Developer, Operator, SRE | Roles deduplicated per member; use groups |
 
 ### Helm charts
@@ -301,7 +301,7 @@ Cloud credentials are only issued to jobs on `main` in the `prod` environment, b
 | Errors | Stack traces in ERROR logs | Error Reporting |
 | Synthetic | HTTPS uptime checks from US, Europe, Asia-Pacific (certificate validated) | Alerts |
 
-Alerts: uptime failing for app1, uptime failing for app2, pods crash-looping, load-balancer 5xx above 5 %. Targets (design goals): 99.9 % availability, p95 latency under 300 ms, 99.9 % uptime over 30 days.
+Alerts: uptime failing for app1, uptime failing for app2, pods crash-looping, load-balancer 5xx above 5 %, and fast burn of the availability error budget (10x over 1 hour). SLOs are Cloud Monitoring resources (service `platform`): 99.9 % of requests not 5xx and 95 % of requests within 300 ms over 30 days; the 99.9 % uptime target is tracked by the uptime checks.
 
 ## 10. Failures, recovery and runbooks
 | Failure | What happens | Recovery | Data loss |
@@ -374,11 +374,14 @@ helm rollback app1 <revision> -n app1     # repeat for app2 and for both cluster
 | D23 | Developer / Operator / SRE role sets bound to members | Least privilege; groups handle joiners and leavers | Defaults in code; prefer groups |
 | D24 | app1 uses Cloud SQL IAM login; Helm hook Job creates the schema with a dedicated identity | No password in the app; only the Job can read the admin password | Job runs each deploy; cross-region latency |
 | D25 | app2 uses Redis as an optional 30 s read-through cache | Outage costs speed, not availability | Data up to 30 s old |
+| D26 | East-west traffic uses MCS + mesh, not internal load balancers | Cross-region discovery, sidecar telemetry, no per-service ILB | Depends on MCS and mesh health |
+| D27 | One `primary` node pool per cluster | Same workload shape; autoscaler handles size | Split into system/workload pools when needs differ |
+| D28 | One production stack | Matches the brief; dev/staging is a new `envs/` directory with other variables | No separate place to test infrastructure |
 
 Detailed records: [docs/techlead/adr/](docs/techlead/adr/).
 
 ## 12. Open items and known limits
-- **Alert email:** the channel is attached to all four policies; the recipient must click Google's verification link.
+- **Alert email:** the channel is attached to all five policies; the recipient must click Google's verification link.
 - **Domain email verification:** the registrant must click the ICANN verification email for `vamshicloudlab.com`.
 - **Redis recovery drill:** the restore path is documented and exports run, but a full restore has not been timed. Redis is not live-replicated across regions.
 - **app1 database latency:** the Cloud SQL primary is in us-central1, so app1 pods in us-east1 connect across regions.

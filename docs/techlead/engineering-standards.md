@@ -36,3 +36,4 @@ Diagram: [`diagrams/02-techlead-repo-and-modules.drawio`](../../diagrams/02-tech
 | [0003](adr/0003-logs-to-bigquery-grafana.md) | Cloud Logging -> BigQuery -> Grafana Cloud |
 | [0004](adr/0004-https-and-dns.md) | HTTPS with a managed certificate and a Cloud Domains domain on Cloud DNS |
 | [0005](adr/0005-data-tier-access.md) | IAM-auth Cloud SQL for app1, TLS Redis read-through cache for app2 |
+| [0006](adr/0006-east-west-nodepools-environments.md) | East-west via MCS + mesh, single node pool, single prod stack |

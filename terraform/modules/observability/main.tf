@@ -244,3 +244,63 @@ resource "google_monitoring_alert_policy" "pod_restarts" {
 
   notification_channels = local.channels
 }
+
+# ---------------------------------------------------------------- SLOs
+# Targets match docs/sre/observability-and-dr.md; measured on the global LB request metrics.
+resource "google_monitoring_custom_service" "platform" {
+  project      = var.project_id
+  service_id   = "platform"
+  display_name = "GKE multi-region platform"
+}
+
+resource "google_monitoring_slo" "availability" {
+  project             = var.project_id
+  service             = google_monitoring_custom_service.platform.service_id
+  slo_id              = "availability-999"
+  display_name        = "99.9% of requests are not 5xx (30 days)"
+  goal                = 0.999
+  rolling_period_days = 30
+
+  request_based_sli {
+    good_total_ratio {
+      bad_service_filter   = "metric.type=\"loadbalancing.googleapis.com/https/request_count\" AND resource.type=\"https_lb_rule\" AND metric.label.response_code_class=\"500\""
+      total_service_filter = "metric.type=\"loadbalancing.googleapis.com/https/request_count\" AND resource.type=\"https_lb_rule\""
+    }
+  }
+}
+
+resource "google_monitoring_slo" "latency" {
+  project             = var.project_id
+  service             = google_monitoring_custom_service.platform.service_id
+  slo_id              = "latency-p95-300ms"
+  display_name        = "95% of requests finish within 300 ms (30 days)"
+  goal                = 0.95
+  rolling_period_days = 30
+
+  request_based_sli {
+    distribution_cut {
+      distribution_filter = "metric.type=\"loadbalancing.googleapis.com/https/total_latencies\" AND resource.type=\"https_lb_rule\""
+      range {
+        max = 300
+      }
+    }
+  }
+}
+
+resource "google_monitoring_alert_policy" "availability_burn" {
+  project      = var.project_id
+  display_name = "Availability SLO burning fast (10x over 1 h)"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "Error budget burn rate > 10 (1 h window)"
+    condition_threshold {
+      filter          = "select_slo_burn_rate(\"${google_monitoring_slo.availability.name}\", \"3600s\")"
+      comparison      = "COMPARISON_GT"
+      threshold_value = 10
+      duration        = "0s"
+    }
+  }
+
+  notification_channels = local.channels
+}

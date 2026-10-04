@@ -3,10 +3,12 @@
 Diagrams: [`diagrams/04-sre-observability-dr.drawio`](../../diagrams/04-sre-observability-dr.drawio) (2 pages: observability and DR)
 
 ## SLOs
+The availability and latency SLOs are real Cloud Monitoring resources (`google_monitoring_slo`, service `platform`, in `modules/observability`); a fast-burn alert (error-budget burn rate above 10 over 1 hour) is attached to the email channel.
+
 | SLI | SLO (30 days) | Source |
 |---|---|---|
-| Availability: non-5xx share of LB requests | 99.9 % | LB logs / `https/request_count` |
-| Latency: p95 at the LB | < 300 ms | LB logs `httpRequest.latency` |
+| Availability: non-5xx share of LB requests | 99.9 % (`availability-999`) | `loadbalancing.googleapis.com/https/request_count` |
+| Latency: share of requests within 300 ms | 95 % (`latency-p95-300ms`) | `loadbalancing.googleapis.com/https/total_latencies` |
 | Uptime from 3 continents | 99.9 % | HTTPS uptime checks against `app.vamshicloudlab.com` (certificate validated) |
 
 ## Signals (what, where)
