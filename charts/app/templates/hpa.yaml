@@ -1,14 +1,17 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: app1
+  name: {{ .Values.appName }}
+  namespace: {{ .Values.appName }}
+  labels:
+    app.kubernetes.io/part-of: platform
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: app1
-  minReplicas: 3
-  maxReplicas: 12
+    name: {{ .Values.appName }}
+  minReplicas: {{ .Values.minReplicas }}
+  maxReplicas: {{ .Values.maxReplicas }}
   metrics:
     - type: Resource
       resource:
@@ -18,4 +21,4 @@ spec:
           averageUtilization: 60
   behavior:
     scaleDown:
-      stabilizationWindowSeconds: 300 # avoid flapping
+      stabilizationWindowSeconds: 300

@@ -5,7 +5,7 @@ Diagram: [`diagrams/05-secops-security.drawio`](../../diagrams/05-secops-securit
 ## Controls required by the brief
 | Control | Where |
 |---|---|
-| Workload Identity | `modules/security` (GSA per app + `workloadIdentityUser`), KSA annotation in `k8s/base/*/serviceaccount.yaml` |
+| Workload Identity | `modules/security` (GSA per app + `workloadIdentityUser`), KSA annotation in `charts/app/templates/serviceaccount.yaml` |
 | Secret Manager | `<app>-api-key`, `cloudsql-admin-password`; 2-region replication; per-secret IAM |
 | Private GKE clusters | `enable_private_nodes`, Cloud NAT, IAM-authorised DNS control-plane endpoint |
 | Cloud Armor WAF | `edge-waf` policy, attached via `GCPBackendPolicy` |

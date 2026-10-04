@@ -22,3 +22,7 @@ output "dns_endpoint" {
 output "node_service_account" {
   value = google_service_account.nodes.email
 }
+
+output "workload_pool" {
+  value = google_container_cluster.this.workload_identity_config[0].workload_pool
+}

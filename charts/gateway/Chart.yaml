@@ -1,0 +1,6 @@
+apiVersion: v2
+name: gke-platform-gateway
+description: Global multi-cluster Gateway and app policies
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

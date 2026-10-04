@@ -1,7 +1,0 @@
-# Exports app1/app1 to the fleet. MCS creates a ServiceImport in every cluster and
-# the DNS name app1.app1.svc.clusterset.local. The multi-cluster Gateway uses the
-# ServiceImport as its backend -> NEGs in BOTH regions behind one global LB.
-apiVersion: net.gke.io/v1
-kind: ServiceExport
-metadata:
-  name: app1

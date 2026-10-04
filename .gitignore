@@ -29,6 +29,7 @@ override.tf.json
 sa-*.json
 .env
 .env.*
+grafana.json
 
 # ---------- Python (apps) ----------
 __pycache__/

@@ -21,7 +21,7 @@ Open-book assessment: a production-style platform on Google Cloud, built entirel
 | `terraform/modules/` | Reusable building blocks (network, gke, fleet, registry, data, security, observability) |
 | `terraform/envs/prod/` | The environment that wires modules together |
 | `apps/` | Source + Dockerfiles for app1 and app2 |
-| `k8s/` | Kubernetes manifests (Kustomize base + per-cluster overlays) |
+| `charts/` | Helm charts for app1/app2 and the config-cluster multi-cluster Gateway |
 | `grafana/` | Dashboard JSON, BigQuery schema and SQL queries |
 | `scripts/` | `deploy.sh` - deploy both apps to both clusters |
 | `.github/` | CI/CD workflows and issue templates |

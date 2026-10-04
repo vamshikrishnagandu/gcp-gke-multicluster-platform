@@ -1,0 +1,7 @@
+apiVersion: net.gke.io/v1
+kind: ServiceExport
+metadata:
+  name: {{ .Values.appName }}
+  namespace: {{ .Values.appName }}
+  labels:
+    app.kubernetes.io/part-of: platform

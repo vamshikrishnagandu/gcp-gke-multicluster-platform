@@ -12,6 +12,11 @@ provider "google" {
   region = var.region
 }
 
+provider "google-beta" {
+  project = var.project_id
+  region  = var.region
+}
+
 # Budgets API must be billed to a "quota project". User ADC has none by default,
 # so this alias tells the provider to bill API calls to the new project.
 provider "google" {
@@ -22,6 +27,10 @@ provider "google" {
 }
 
 locals {
+  github_repository_parts = split("/", var.github_repository)
+  github_repository_owner = local.github_repository_parts[0]
+  github_repository_name  = local.github_repository_parts[1]
+
   apis = [
     "artifactregistry.googleapis.com",
     "bigquery.googleapis.com",
@@ -35,6 +44,7 @@ locals {
     "cloudresourcemanager.googleapis.com",
     "cloudtrace.googleapis.com",
     "compute.googleapis.com",
+    "connectgateway.googleapis.com",
     "container.googleapis.com",
     "containeranalysis.googleapis.com",
     "containerscanning.googleapis.com",
@@ -111,6 +121,20 @@ resource "google_project_service" "apis" {
   disable_on_destroy = false # disabling APIs on destroy can orphan resources
 }
 
+resource "google_project_service_identity" "fleet_services" {
+  provider = google-beta
+
+  for_each = toset([
+    "connectgateway.googleapis.com",
+    "gkehub.googleapis.com",
+    "multiclusterservicediscovery.googleapis.com",
+  ])
+
+  project    = google_project.this.project_id
+  service    = each.value
+  depends_on = [google_project_service.apis]
+}
+
 # ---------------------------------------------------------------- 3. State bucket
 resource "google_storage_bucket" "tfstate" {
   project                     = google_project.this.project_id
@@ -160,8 +184,8 @@ resource "google_iam_workload_identity_pool_provider" "github" {
     "attribute.ref"              = "assertion.ref"
   }
 
-  # Hard gate: tokens from ANY other repository are rejected at the STS exchange.
-  attribute_condition = "assertion.repository == '${var.github_repository}'"
+  # Allow same-repo PR plans and jobs approved for the prod environment only.
+  attribute_condition = "assertion.repository == '${var.github_repository}' && (assertion.sub == 'repo:${local.github_repository_owner}/${local.github_repository_name}:pull_request' || assertion.sub == 'repo:${local.github_repository_owner}/${local.github_repository_name}:environment:prod')"
 
   oidc {
     issuer_uri = "https://token.actions.githubusercontent.com"

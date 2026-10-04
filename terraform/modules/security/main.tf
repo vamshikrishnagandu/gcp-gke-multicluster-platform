@@ -27,16 +27,6 @@ resource "google_project_iam_member" "app" {
   member  = "serviceAccount:${google_service_account.app[each.value.app].email}"
 }
 
-# KSA "<app>" in namespace "<app>" may act as GSA "wl-<app>". Same binding works
-# in BOTH clusters because the workload pool is project-wide ("fleet sameness").
-resource "google_service_account_iam_member" "wi" {
-  for_each = toset(var.apps)
-
-  service_account_id = google_service_account.app[each.key].name
-  role               = "roles/iam.workloadIdentityUser"
-  member             = "serviceAccount:${var.project_id}.svc.id.goog[${each.key}/${each.key}]"
-}
-
 # ---------------------------------------------------------------- 2. Secret Manager
 resource "google_secret_manager_secret" "app_api_key" {
   for_each = toset(var.apps)
@@ -108,7 +98,6 @@ resource "google_compute_security_policy" "edge" {
       1005 = "scannerdetection-v33-stable"
       1006 = "protocolattack-v33-stable"
       1007 = "sessionfixation-v33-stable"
-      1008 = "cve-canary" # Log4Shell (CVE-2021-44228) and other critical CVEs
     }
     content {
       priority    = rule.key
@@ -118,6 +107,17 @@ resource "google_compute_security_policy" "edge" {
         expr {
           expression = "evaluatePreconfiguredWaf('${rule.value}', {'sensitivity': 1})"
         }
+      }
+    }
+  }
+
+  rule {
+    priority    = 1008
+    action      = "deny(403)"
+    description = "Log4Shell and other critical CVEs"
+    match {
+      expr {
+        expression = "evaluatePreconfiguredWaf('cve-canary')"
       }
     }
   }

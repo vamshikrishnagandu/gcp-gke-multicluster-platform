@@ -11,22 +11,6 @@
 
 # ---------------------------------------------------------------- Cloud SQL
 # Audit + troubleshooting flags (CIS PostgreSQL benchmark, checked by checkov)
-locals {
-  pg_flags = {
-    "cloudsql.iam_authentication" = "on"
-    "cloudsql.enable_pgaudit"     = "on"
-    "pgaudit.log"                 = "ddl,role"
-    log_checkpoints               = "on"
-    log_connections               = "on"
-    log_disconnections            = "on"
-    log_lock_waits                = "on"
-    log_hostname                  = "on"
-    log_statement                 = "ddl"
-    log_min_error_statement       = "error"
-    log_min_messages              = "error"
-  }
-}
-
 resource "google_sql_database_instance" "primary" {
   project             = var.project_id
   name                = "pg-primary-${var.name_suffix}"
@@ -73,12 +57,53 @@ resource "google_sql_database_instance" "primary" {
       record_client_address   = false
     }
 
-    dynamic "database_flags" {
-      for_each = merge(local.pg_flags, { log_min_duration_statement = "500" }) # slow queries > 500 ms
-      content {
-        name  = database_flags.key
-        value = database_flags.value
-      }
+    database_flags {
+      name  = "cloudsql.iam_authentication"
+      value = "on"
+    }
+    database_flags {
+      name  = "cloudsql.enable_pgaudit"
+      value = "on"
+    }
+    database_flags {
+      name  = "pgaudit.log"
+      value = "ddl,role"
+    }
+    database_flags {
+      name  = "log_checkpoints"
+      value = "on"
+    }
+    database_flags {
+      name  = "log_connections"
+      value = "on"
+    }
+    database_flags {
+      name  = "log_disconnections"
+      value = "on"
+    }
+    database_flags {
+      name  = "log_lock_waits"
+      value = "on"
+    }
+    database_flags {
+      name  = "log_hostname"
+      value = "on"
+    }
+    database_flags {
+      name  = "log_statement"
+      value = "ddl"
+    }
+    database_flags {
+      name  = "log_min_error_statement"
+      value = "error"
+    }
+    database_flags {
+      name  = "log_min_messages"
+      value = "error"
+    }
+    database_flags {
+      name  = "log_min_duration_statement"
+      value = "500"
     }
   }
 }
@@ -110,12 +135,49 @@ resource "google_sql_database_instance" "replica" {
       ssl_mode        = "ENCRYPTED_ONLY"
     }
 
-    dynamic "database_flags" {
-      for_each = local.pg_flags
-      content {
-        name  = database_flags.key
-        value = database_flags.value
-      }
+    database_flags {
+      name  = "cloudsql.iam_authentication"
+      value = "on"
+    }
+    database_flags {
+      name  = "cloudsql.enable_pgaudit"
+      value = "on"
+    }
+    database_flags {
+      name  = "pgaudit.log"
+      value = "ddl,role"
+    }
+    database_flags {
+      name  = "log_checkpoints"
+      value = "on"
+    }
+    database_flags {
+      name  = "log_connections"
+      value = "on"
+    }
+    database_flags {
+      name  = "log_disconnections"
+      value = "on"
+    }
+    database_flags {
+      name  = "log_lock_waits"
+      value = "on"
+    }
+    database_flags {
+      name  = "log_hostname"
+      value = "on"
+    }
+    database_flags {
+      name  = "log_statement"
+      value = "ddl"
+    }
+    database_flags {
+      name  = "log_min_error_statement"
+      value = "error"
+    }
+    database_flags {
+      name  = "log_min_messages"
+      value = "error"
     }
   }
 }
@@ -182,8 +244,7 @@ resource "google_redis_instance" "cache" {
   redis_version      = "REDIS_7_2"
   authorized_network = var.network_id
   connect_mode       = "PRIVATE_SERVICE_ACCESS"
-  replica_count      = 1
-  read_replicas_mode = "READ_REPLICAS_ENABLED"
+  read_replicas_mode = "READ_REPLICAS_DISABLED"
 
   auth_enabled            = true
   transit_encryption_mode = "SERVER_AUTHENTICATION"

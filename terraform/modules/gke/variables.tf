@@ -2,6 +2,10 @@ variable "project_id" {
   type = string
 }
 
+variable "binauthz_policy_id" {
+  type = string
+}
+
 variable "name" {
   description = "Cluster name, e.g. gke-usc1."
   type        = string

@@ -21,16 +21,11 @@ digest_of() {
     --format='value(image_summary.digest)'
 }
 
-IMAGE_APP1="${REGISTRY}/app1@$(digest_of app1)"
-IMAGE_APP2="${REGISTRY}/app2@$(digest_of app2)"
-echo "app1 -> ${IMAGE_APP1}"
-echo "app2 -> ${IMAGE_APP2}"
-
-render() {
-  kubectl kustomize "$1" |
-    sed -e "s|PROJECT_ID|${PROJECT_ID}|g" \
-        -e "s|IMAGE_APP1|${IMAGE_APP1}|g" \
-        -e "s|IMAGE_APP2|${IMAGE_APP2}|g"
+image_for() {
+  local app="$1"
+  local digest
+  digest="$(digest_of "$app")"
+  printf '%s/%s@%s' "$REGISTRY" "$app" "$digest"
 }
 
 for entry in "${CLUSTERS[@]}"; do
@@ -42,12 +37,19 @@ for entry in "${CLUSTERS[@]}"; do
     --project "${PROJECT_ID}" --dns-endpoint
 
   for app in app1 app2; do
-    render "${ROOT}/k8s/base/${app}" | kubectl apply -f -
+    helm upgrade --install "$app" "${ROOT}/charts/app" \
+      --namespace "$app" --create-namespace \
+      --set-string "appName=$app" \
+      --set-string "projectID=$PROJECT_ID" \
+      --set-string "image=$(image_for "$app")" \
+      --wait --timeout 10m
   done
 
   if [[ "${name}" == "${CONFIG_CLUSTER}" ]]; then
-    echo "    config cluster -> applying Gateway"
-    render "${ROOT}/k8s/gateway" | kubectl apply -f -
+    echo "    config cluster -> upgrading Gateway release"
+    helm upgrade --install platform-gateway "${ROOT}/charts/gateway" \
+      --namespace gateway-infra --create-namespace \
+      --wait --timeout 10m
   fi
 
   for app in app1 app2; do

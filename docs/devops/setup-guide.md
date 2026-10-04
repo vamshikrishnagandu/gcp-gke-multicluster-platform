@@ -36,9 +36,12 @@ terraform apply tfplan                         # ~20-25 min (clusters + Cloud SQ
 ```bash
 gcloud auth configure-docker us-docker.pkg.dev
 REG=us-docker.pkg.dev/$PROJECT_ID/apps
+BACKUP_REG=us-east1-docker.pkg.dev/$PROJECT_ID/apps-backup
 for app in app1 app2; do
-  docker build --build-arg APP=$app --build-arg VERSION=manual-1 -t $REG/$app:manual-1 apps/
+  docker build --platform linux/amd64 --build-arg APP=$app --build-arg VERSION=manual-1 -t $REG/$app:manual-1 apps/
   docker push $REG/$app:manual-1
+  docker tag $REG/$app:manual-1 $BACKUP_REG/$app:manual-1
+  docker push $BACKUP_REG/$app:manual-1
 done
 ```
 Binary Authorization starts in `DRYRUN_AUDIT_LOG_ONLY` mode (see tfvars), so these unsigned images are allowed but logged.
@@ -57,9 +60,21 @@ curl http://$IP/app2/orders  # app2 -> app1 cross-service call
 - GitHub: create an environment called `prod` with yourself as a required reviewer.
 
 ## 8. Grafana Cloud
-1. Create a free stack at grafana.com and install the **Google BigQuery** data source plugin.
-2. `gcloud iam service-accounts keys create grafana.json --iam-account=grafana-reader@$PROJECT_ID.iam.gserviceaccount.com` (this key is git-ignored; upload it to Grafana, then delete the local file).
-3. Import `grafana/dashboards/platform-overview.json` and set the `project` variable.
+1. Create a Grafana Cloud stack and install the signed **Google BigQuery** data source plugin.
+2. Create a local key for the credential-only service account. Its only permission is to impersonate `grafana-reader`; it has no direct BigQuery roles.
+   ```bash
+   umask 077
+   mkdir -p "$HOME/.config/grafana"
+   chmod 700 "$HOME/.config/grafana"
+   gcloud iam service-accounts keys create "$HOME/.config/grafana/grafana-auth.json" \
+     --iam-account="$(terraform -chdir=terraform/envs/prod output -raw grafana_auth_service_account)" \
+     --project="$PROJECT_ID"
+   chmod 600 "$HOME/.config/grafana/grafana-auth.json"
+   ```
+   Service-account keys are long-lived credentials. Do not commit, paste, or share this file.
+3. In Grafana, add a **Google BigQuery** data source. Select **Google JWT File**, upload `grafana-auth.json`, enable **Service account impersonation**, and set the target to `grafana-reader@$PROJECT_ID.iam.gserviceaccount.com`. Set **Default project** to `$PROJECT_ID`, then click **Save & test**.
+4. Import `grafana/dashboards/platform-overview.json`, map `DS_BIGQUERY` to the BigQuery data source, set the `project` variable to `$PROJECT_ID`, then save with **Update default variable values** enabled.
+5. Keep the key active while Grafana Cloud uses it. Delete the local copy after upload; revoke/rotate the GCP key only when replacing it in Grafana.
 
 ## 9. Teardown
 ```bash

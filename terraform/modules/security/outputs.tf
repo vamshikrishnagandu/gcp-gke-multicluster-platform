@@ -3,6 +3,14 @@ output "app_service_accounts" {
   value       = { for k, sa in google_service_account.app : k => sa.email }
 }
 
+output "app_service_account_names" {
+  value = { for k, sa in google_service_account.app : k => sa.name }
+}
+
+output "binary_authorization_policy_id" {
+  value = google_binary_authorization_policy.this.id
+}
+
 output "security_policy_name" {
   value = google_compute_security_policy.edge.name
 }

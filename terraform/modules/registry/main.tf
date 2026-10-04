@@ -45,3 +45,45 @@ resource "google_artifact_registry_repository" "docker" {
 
   labels = var.labels
 }
+
+resource "google_artifact_registry_repository" "backup" {
+  project       = var.project_id
+  location      = var.backup_location
+  repository_id = var.backup_repository_id
+  description   = "Regional recovery copy of application container images"
+  format        = "DOCKER"
+
+  docker_config {
+    immutable_tags = true
+  }
+
+  cleanup_policy_dry_run = var.cleanup_dry_run
+
+  cleanup_policies {
+    id     = "keep-recent"
+    action = "KEEP"
+    most_recent_versions {
+      keep_count = 15
+    }
+  }
+
+  cleanup_policies {
+    id     = "delete-untagged"
+    action = "DELETE"
+    condition {
+      tag_state  = "UNTAGGED"
+      older_than = "1209600s"
+    }
+  }
+
+  cleanup_policies {
+    id     = "delete-old"
+    action = "DELETE"
+    condition {
+      tag_state  = "ANY"
+      older_than = "7776000s"
+    }
+  }
+
+  labels = var.labels
+}

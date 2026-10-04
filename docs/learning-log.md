@@ -5,7 +5,48 @@ Format per entry: Command -> Explanation -> Result -> Lesson.
 
 ---
 
-## Phase 0 - Tooling setup (macOS 11.7 Big Sur, Intel x86_64)
+## Current workstation - macOS 26.6, Apple Silicon arm64 (2026-10-03)
+
+This addendum is the current setup. The Phase 0 and M13 notes below describe the previous macOS 11.7 Intel machine and are historical; do not apply their OS-specific workarounds to this Mac.
+
+### Tool installation
+| Command | Explanation | Result | Lesson |
+|---|---|---|---|
+| `sw_vers -productVersion`; `uname -m` | Check macOS version and CPU architecture before choosing binaries | macOS 26.6, `arm64` | Use native Apple Silicon builds; old Intel/Big Sur constraints do not apply |
+| Homebrew's official installer | Install the macOS package manager | Homebrew installed under `/opt/homebrew` | Homebrew is the base for installing and updating local tools |
+| `brew install tfenv kubectl python@3.12 pipx gh terraform-linters/tap/tflint` | Install Terraform version management, Kubernetes CLI, app Python, isolated Python CLI installs, GitHub CLI, and Terraform linting | `kubectl` 1.37.1, Python 3.12.15, `gh` 2.102.0, TFLint 0.64.0; pipx 1.17.10; tfenv 3.2.2 | TFLint is now distributed through the Terraform-Linters tap, not Homebrew core |
+| `tfenv install 1.16.5`; `tfenv use 1.16.5` | Install and select the current Terraform release used by this checkout | Terraform 1.16.5; SHA256 matched | Use the same Terraform version locally and in CI |
+| `brew install --cask google-cloud-sdk`; `gcloud components install gke-gcloud-auth-plugin` | Install Google Cloud CLI and the `kubectl` credential plugin | gcloud 587.0.0; GKE auth plugin 0.5.19 | Set `CLOUDSDK_PYTHON` to Homebrew Python 3.12 because macOS's Python 3.9 is too old for this gcloud release |
+| `brew install --cask docker`; `open -a Docker` | Install and start Docker Desktop, which provides the local container engine | Docker client/server 29.8.1; `docker info` reports `aarch64` | The Docker CLI alone is not the engine; Docker Desktop must be running for builds |
+| `pipx install checkov --python /opt/homebrew/bin/python3.12` with `PIPX_HOME="$HOME/.local/pipx"` | Install the IaC security scanner in an isolated environment | Checkov 3.3.22 | Keep pipx environments out of paths containing spaces so generated launchers work |
+| `python3.12 -m venv apps/.venv`; `apps/.venv/bin/python -m pip install -r apps/requirements.txt ruff` | Create an app-local Python environment and install pinned dependencies plus the CI linter | Installed under the Git-ignored `apps/.venv/` | Keep project packages isolated from macOS Python |
+
+### Terraform and validation
+- Removed the Big Sur-only `random` provider cap in the production environment and its data/security modules; `~> 3.6` now permits current compatible v3 releases. `terraform init -backend=false -upgrade` selected `random` 3.9.1 and Google provider 6.50.0.
+- Updated both Terraform GitHub Actions jobs from Terraform 1.12.2 to 1.16.5.
+- `terraform validate` passed for production and bootstrap; `terraform fmt -check -recursive terraform` passed.
+- TFLint passed; both Helm charts linted/rendered and passed Kubernetes server-side dry-runs; Ruff and both apps' Flask smoke tests passed.
+- The initial Checkov run reported 178 passes and 18 failures because its static parser could not see Cloud SQL flags emitted by dynamic blocks, and did not recognize the dynamic Cloud Armor CVE rule. The flags were made explicit without changing values, and the `cve-canary` rule was made explicit at Cloud Armor's default sensitivity. The final scan reports 195 passed and 0 failed; `CKV_GCP_125` is documented as a scanner interpolation exception for the exact repository/subject-restricted WIF condition.
+- `gcloud auth login` and `gcloud auth application-default login` completed for local CLI and Terraform credentials; the ADC quota project and gcloud default were set to the existing platform project.
+- Confirmed the existing GCS state bucket and `envs/prod/default.tfstate`; initialized the production backend without migrating or changing state.
+- The first partial production apply exposed two issues: fleet/security IAM ran before the GKE Workload Identity pool existed, and Memorystore read replicas rejected the configured 1 GB size (minimum 5 GB). Split the GKE/Binary Authorization dependency from Workload Identity IAM, and disabled optional Redis read replicas while retaining the 1 GB Standard HA cache.
+- The final production apply completed: 101 resources added overall, 0 changed, 0 destroyed. Both clusters are active; Gateway IP is `34.111.154.24`. The Terraform output reported Redis at `10.100.46.220` and registry `us-docker.pkg.dev/gke-mc-platform-100324148/apps`.
+- On Apple Silicon, built and pushed `app1` and `app2` as `manual-1` with `--platform linux/amd64`. The deployment script stopped because neither cluster had the `net.gke.io` ServiceExport API. Applied the remaining app manifests without ServiceExport to both clusters: all four deployments reached 3/3 replicas, and health/root routes returned HTTP 200 in every cluster.
+- MCS was `ACTIVE` and both memberships were `OK`, but the `ServiceExport`/`ServiceImport` APIs and importer pods were initially absent. Enabled Connect Gateway and created the MCS, GKE Hub, and Connect Gateway service identities with their documented roles; corrected the importer principal to the documented Workload Identity form. MCS later reconciled in both clusters (see the next entry).
+- MCS later reconciled in both clusters. `ServiceExport` conditions are initialized/exported, ServiceImports exist for both apps in both regions, and the global Gateway is programmed at `34.111.154.24` with both HTTPRoutes attached. Public `/app1/` and `/app2/` requests returned HTTP 200; `/app2/orders` returned HTTP 200 and called app1 in `us-east1` from app2 in `us-central1`.
+- Verified all four application HPAs report CPU metrics and maintain 3 replicas; app1 and app2 Gateway NEGs report healthy endpoints in both regions; Cloud Logging receives app request logs and BigQuery export tables exist.
+- Added multiregion uptime checks for `/app1/healthz` and `/app2/healthz`, alert policies, and an email notification channel for `vamshik@gmail.com`. The channel exists but is not verified yet; complete the verification link from Google's email before relying on notifications.
+- Binary Authorization is enforced. Both `manual-1` image digests passed remote scanning with zero CRITICAL findings and have attestations from `build-attestor`; temporary user KMS signing access was removed afterward.
+- Added a regional `us-east1` Artifact Registry recovery repository with immutable tags and retention policies. Mirrored both signed `manual-1` images into it. CI now builds, mirrors, and attests future images in the primary and recovery registries.
+- The GitHub WIF provider now restricts subjects to this repository's `pull_request` and `environment:prod` jobs; the live provider and bootstrap source were both updated.
+- Connected Grafana Cloud stack `mellowbookcase167` to BigQuery using a credential-only key that impersonates `grafana-reader`; the data source Save & test succeeded. Imported `grafana/dashboards/platform-overview.json`, mapped `DS_BIGQUERY`, set the project variable to `gke-mc-platform-100324148`, and saved that value as the dashboard default.
+- Corrected Grafana SQL field paths to match the live BigQuery sink schema: application `httpRequest.status` is top-level, and load-balancer Cloud Armor fields live in `jsonpayload_type_loadbalancerlogentry`. BigQuery dry-runs validated the corrected paths and affected Grafana panels now return series. Kubernetes resources are managed with Helm.
+- Bootstrap now declares the Connect Gateway API and uses the Google Beta provider's service-identity resource for Connect Gateway, GKE Hub, and MCS. Bootstrap validation passed; no bootstrap apply was run because this clone has no bootstrap state.
+- CI is configured to scan, sign, mirror, and deploy future release images; the current `manual-1` images were scanned and attested manually in both registries. The platform remains deployed and may incur ongoing GCP charges.
+- Migrated Kubernetes source of truth from Kustomize to Helm 4.3.0 charts (`charts/app`, `charts/gateway`). Server-side dry-runs passed in both clusters. The first adoption hit a server-side apply field-manager conflict on a NetworkPolicy; `--take-ownership --force-conflicts` resolved it, all five Helm releases report `deployed`, all four app rollouts are healthy, and `/app2/orders` still returns HTTP 200 across regions.
+- Updated `scripts/deploy.sh` and the apps workflow to use Helm, lint/render both charts in CI, configure both Artifact Registry hosts, and preinstall the gcloud `local-extract` component before remote scans. Removed the superseded Kustomize manifest files to leave one Kubernetes source of truth.
+
+## Phase 0 - Tooling setup (historical: macOS 11.7 Big Sur, Intel x86_64)
 
 ### 0.1 Check what is installed
 ```bash
@@ -160,6 +201,6 @@ _Append entries here while running the [setup guide](devops/setup-guide.md): com
 ### 2.2 Prod env plan
 | # | What went wrong | Symptom | Fix | Lesson |
 |---|---|---|---|---|
-| M13 | `random ~> 3.6` resolved to v3.9.1, which is built with a newer Go that needs **macOS 12+**. This laptop runs macOS 11.7 | `terraform validate`: *Failed to load plugin schemas ... Unrecognized remote plugin message*. Running the binary directly shows `dyld: Symbol not found ... Security.framework` (exit 134) | Pinned `random` to `~> 3.6.0` (v3.6.3) in envs/prod, modules/data and modules/security. `google` v6.50 still works | A `~>` constraint on a minor version still floats to new releases. When a plugin "handshake" fails, run the plugin binary directly to see the real error. Commit `.terraform.lock.hcl` so CI and the laptop use the same build |
+| M13 (historical Big Sur issue; resolved for current macOS) | `random ~> 3.6` resolved to v3.9.1, which needs **macOS 12+**; the previous laptop ran macOS 11.7 | On Big Sur, `terraform validate` failed to load plugin schemas and the provider binary reported a missing Security.framework symbol | Temporarily pinned `random` to `~> 3.6.0` (v3.6.3); on macOS 26.6 this cap is removed and v3.9.1 validates | Provider OS requirements matter; keep compatibility workarounds only as long as the supported machines need them. Commit `.terraform.lock.hcl` so CI and developers use reproducible provider builds |
 
 Result after the fix: `Plan: 101 to add, 0 to change, 0 to destroy.`

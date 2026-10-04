@@ -40,7 +40,7 @@
           "format": 0,
           "editorMode": "code",
           "rawQuery": true,
-          "rawSql": "SELECT TIMESTAMP_TRUNC(timestamp, MINUTE) AS time, CONCAT(resource.labels.namespace_name, ' / ', resource.labels.cluster_name) AS series, SAFE_DIVIDE(COUNTIF(severity IN ('ERROR','CRITICAL','ALERT','EMERGENCY')), COUNT(*)) * 100 AS error_rate_pct FROM `${project}.platform_logs.stdout` WHERE $__timeFilter(timestamp) AND resource.labels.namespace_name IN ('app1','app2') AND jsonPayload.httprequest.status IS NOT NULL GROUP BY time, series ORDER BY time"
+          "rawSql": "SELECT TIMESTAMP_TRUNC(timestamp, MINUTE) AS time, CONCAT(resource.labels.namespace_name, ' / ', resource.labels.cluster_name) AS series, SAFE_DIVIDE(COUNTIF(severity IN ('ERROR','CRITICAL','ALERT','EMERGENCY')), COUNT(*)) * 100 AS error_rate_pct FROM `${project}.platform_logs.stdout` WHERE $__timeFilter(timestamp) AND resource.labels.namespace_name IN ('app1','app2') AND httpRequest.status IS NOT NULL GROUP BY time, series ORDER BY time"
         }
       ],
       "transformations": [{ "id": "prepareTimeSeries", "options": { "format": "multi" } }]
@@ -126,7 +126,7 @@
           "format": 1,
           "editorMode": "code",
           "rawQuery": true,
-          "rawSql": "SELECT IFNULL(jsonPayload.enforcedsecuritypolicy.outcome, 'NONE') AS outcome, COUNT(*) AS requests FROM `${project}.platform_logs.requests` WHERE $__timeFilter(timestamp) GROUP BY outcome"
+          "rawSql": "SELECT IFNULL(jsonpayload_type_loadbalancerlogentry.enforcedsecuritypolicy.outcome, 'NONE') AS outcome, COUNT(*) AS requests FROM `${project}.platform_logs.requests` WHERE $__timeFilter(timestamp) GROUP BY outcome"
         }
       ]
     },
@@ -142,7 +142,7 @@
           "format": 0,
           "editorMode": "code",
           "rawQuery": true,
-          "rawSql": "SELECT TIMESTAMP_TRUNC(timestamp, MINUTE) AS time, resource.labels.cluster_name AS series, COUNT(*) AS requests FROM `${project}.platform_logs.stdout` WHERE $__timeFilter(timestamp) AND jsonPayload.httprequest.status IS NOT NULL GROUP BY time, series ORDER BY time"
+          "rawSql": "SELECT TIMESTAMP_TRUNC(timestamp, MINUTE) AS time, resource.labels.cluster_name AS series, COUNT(*) AS requests FROM `${project}.platform_logs.stdout` WHERE $__timeFilter(timestamp) AND httpRequest.status IS NOT NULL GROUP BY time, series ORDER BY time"
         }
       ],
       "transformations": [{ "id": "prepareTimeSeries", "options": { "format": "multi" } }]

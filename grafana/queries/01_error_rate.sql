@@ -11,6 +11,6 @@ SELECT
 FROM `PROJECT_ID.platform_logs.stdout`
 WHERE $__timeFilter(timestamp)
   AND resource.labels.namespace_name IN ('app1', 'app2')
-  AND jsonPayload.httprequest.status IS NOT NULL   -- access-log lines only
+  AND httpRequest.status IS NOT NULL   -- access-log lines only
 GROUP BY time, app, cluster
 ORDER BY time

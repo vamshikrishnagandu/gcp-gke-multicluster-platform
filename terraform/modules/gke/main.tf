@@ -128,7 +128,7 @@ resource "google_container_cluster" "this" {
   }
 
   monitoring_config {
-    enable_components = ["SYSTEM_COMPONENTS", "POD", "DEPLOYMENT", "HPA", "STORAGE"]
+    enable_components = ["SYSTEM_COMPONENTS", "STORAGE", "HPA", "POD", "DEPLOYMENT"]
 
     managed_prometheus {
       enabled = true
@@ -166,6 +166,11 @@ resource "google_container_cluster" "this" {
 
   lifecycle {
     ignore_changes = [initial_node_count]
+
+    precondition {
+      condition     = var.binauthz_policy_id != ""
+      error_message = "The Binary Authorization policy must exist before creating a GKE cluster."
+    }
   }
 }
 

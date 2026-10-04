@@ -64,15 +64,23 @@ module "gke" {
   usage_export_dataset = module.observability.usage_dataset
   deletion_protection  = var.deletion_protection
   labels               = var.labels
+  binauthz_policy_id   = module.security.binary_authorization_policy_id
 
-  # Binary Authorization policy must exist before clusters enforce it
-  depends_on = [module.security]
+}
+
+resource "google_service_account_iam_member" "workload_identity" {
+  for_each = toset(var.apps)
+
+  service_account_id = module.security.app_service_account_names[each.key]
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "serviceAccount:${module.gke[local.config_key].workload_pool}[${each.key}/${each.key}]"
 }
 
 module "fleet" {
   source            = "../../modules/fleet"
   project_id        = var.project_id
   config_membership = module.gke[local.config_key].membership
+  workload_pool     = module.gke[local.config_key].workload_pool
 }
 
 module "data" {
@@ -98,7 +106,7 @@ module "observability" {
   grafana_principal = var.grafana_principal
 }
 
-# Static anycast IP for the multi-cluster Gateway (referenced by name in k8s/).
+# Static anycast IP for the multi-cluster Gateway (referenced by charts/gateway).
 resource "google_compute_global_address" "gateway" {
   project = var.project_id
   name    = "platform-gateway-ip"

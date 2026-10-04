@@ -28,14 +28,13 @@ Table names are derived from the log ID (`/` and `.` become `_`).
 | `resource.labels.pod_name` | STRING | pod |
 | `jsonPayload.message` | STRING | log message (apps log JSON -> parsed into jsonPayload) |
 | `jsonPayload.latency_ms` | FLOAT | server-side latency written by the app |
-| `jsonPayload.httprequest.status` | INTEGER | HTTP status in app access logs |
+| `httpRequest.status` | INTEGER | HTTP status in app access logs (promoted to the top-level LogEntry field) |
 | `httpRequest.latency` | FLOAT (seconds) | LB-measured latency (lb_logs only) |
 | `httpRequest.status` | INTEGER | status returned to the client (lb_logs only) |
-| `jsonPayload.enforcedsecuritypolicy.outcome` | STRING | Cloud Armor ACCEPT / DENY (lb_logs) |
+| `jsonpayload_type_loadbalancerlogentry.enforcedsecuritypolicy.outcome` | STRING | Cloud Armor ACCEPT / DENY (lb_logs) |
 | `trace` | STRING | `projects/P/traces/ID` - links a log line to Cloud Trace |
 
-> **Gotcha:** BigQuery column names are **lower-cased** for nested `jsonPayload` fields
-> (`httpRequest` inside jsonPayload becomes `jsonpayload.httprequest`). Top-level LogEntry fields keep camelCase (`httpRequest.latency`).
+> **Gotcha:** BigQuery lower-cases nested `jsonPayload` fields, but special LogEntry fields such as `httpRequest` are promoted to top-level columns. The load-balancer `jsonPayload` is exported as the typed record `jsonpayload_type_loadbalancerlogentry`.
 
 ## Queries
 See [`queries/`](queries/) - one file per dashboard panel. `PROJECT_ID` is replaced with your project ID when importing.

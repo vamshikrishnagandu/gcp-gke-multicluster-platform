@@ -33,7 +33,7 @@ resource "google_gke_hub_feature" "mci" {
 resource "google_project_iam_member" "mcs_importer" {
   project = var.project_id
   role    = "roles/compute.networkViewer"
-  member  = "serviceAccount:${var.project_id}.svc.id.goog[gke-mcs/gke-mcs-importer]"
+  member  = "principal://iam.googleapis.com/projects/${data.google_project.this.number}/locations/global/workloadIdentityPools/${var.workload_pool}/subject/ns/gke-mcs/sa/gke-mcs-importer"
 
   depends_on = [google_gke_hub_feature.mcs]
 }

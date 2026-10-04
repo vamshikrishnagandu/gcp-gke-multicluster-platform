@@ -2,6 +2,7 @@
 compact: true
 quiet: true
 skip-check:
+  - CKV_GCP_125 # OIDC trust pins exact repo + PR/prod subjects; Checkov cannot resolve split() locals
   - CKV_GCP_84  # Artifact Registry CMEK: Google-managed encryption accepted for this demo
   - CKV_GCP_83  # Secret Manager CMEK: same
   - CKV_GCP_81  # Redis CMEK: same

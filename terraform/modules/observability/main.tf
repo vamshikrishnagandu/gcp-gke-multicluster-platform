@@ -86,6 +86,18 @@ resource "google_service_account" "grafana" {
   display_name = "Grafana Cloud - BigQuery and Monitoring read-only"
 }
 
+resource "google_service_account" "grafana_auth" {
+  project      = var.project_id
+  account_id   = "grafana-auth"
+  display_name = "Grafana Cloud - key identity for reader impersonation"
+}
+
+resource "google_service_account_iam_member" "grafana_auth_impersonation" {
+  service_account_id = google_service_account.grafana.name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "serviceAccount:${google_service_account.grafana_auth.email}"
+}
+
 resource "google_project_iam_member" "grafana" {
   for_each = toset([
     "roles/bigquery.jobUser",  # run queries

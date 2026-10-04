@@ -1,8 +1,10 @@
-# Default deny, then allow only what is needed. Enforced by Dataplane V2.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: default-deny
+  namespace: {{ .Values.appName }}
+  labels:
+    app.kubernetes.io/part-of: platform
 spec:
   podSelector: {}
   policyTypes: ["Ingress"]
@@ -10,28 +12,33 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: allow-app1-ingress
+  name: allow-{{ .Values.appName }}-ingress
+  namespace: {{ .Values.appName }}
+  labels:
+    app.kubernetes.io/part-of: platform
 spec:
   podSelector:
     matchLabels:
-      app: app1
+      app: {{ .Values.appName }}
   policyTypes: ["Ingress"]
   ingress:
-    # 1. Google LB front ends + health checks (container-native LB hits pod IPs directly)
     - from:
-        - ipBlock: {cidr: 35.191.0.0/16}
-        - ipBlock: {cidr: 130.211.0.0/22}
+        - ipBlock:
+            cidr: 35.191.0.0/16
+        - ipBlock:
+            cidr: 130.211.0.0/22
       ports:
         - port: 8080
-    # 2. app2 pods in ANY cluster of the fleet (cross-cluster calls arrive from remote pod IPs)
+    {{- if eq .Values.appName "app1" }}
     - from:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: app2
-        - ipBlock: {cidr: 10.20.0.0/14} # pod CIDRs of all clusters (10.20-10.23.x.x)
+        - ipBlock:
+            cidr: 10.20.0.0/14
       ports:
         - port: 8080
-    # 3. Managed Prometheus collector
+    {{- end }}
     - from:
         - namespaceSelector:
             matchLabels:

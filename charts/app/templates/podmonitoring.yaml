@@ -1,0 +1,15 @@
+apiVersion: monitoring.googleapis.com/v1
+kind: PodMonitoring
+metadata:
+  name: {{ .Values.appName }}
+  namespace: {{ .Values.appName }}
+  labels:
+    app.kubernetes.io/part-of: platform
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.appName }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s

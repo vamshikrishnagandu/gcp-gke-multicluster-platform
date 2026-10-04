@@ -1,0 +1,7 @@
+gatewayName: platform
+gatewayClassName: gke-l7-global-external-managed-mc
+addressName: platform-gateway-ip
+apps:
+  - app1
+  - app2
+securityPolicy: edge-waf

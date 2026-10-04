@@ -22,6 +22,10 @@ output "registry" {
   value = module.registry.repository_url
 }
 
+output "backup_registry" {
+  value = module.registry.backup_repository_url
+}
+
 output "app_service_accounts" {
   value = module.security.app_service_accounts
 }
@@ -52,6 +56,10 @@ output "bq_dataset" {
 
 output "grafana_service_account" {
   value = module.observability.grafana_service_account
+}
+
+output "grafana_auth_service_account" {
+  value = module.observability.grafana_auth_service_account
 }
 
 output "get_credentials_commands" {

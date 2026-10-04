@@ -1,0 +1,48 @@
+{{- range .Values.apps }}
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: {{ . }}
+  namespace: {{ . }}
+  labels:
+    app.kubernetes.io/part-of: platform
+spec:
+  default:
+    checkIntervalSec: 5
+    timeoutSec: 3
+    healthyThreshold: 2
+    unhealthyThreshold: 2
+    logConfig:
+      enabled: true
+    config:
+      type: HTTP
+      httpHealthCheck:
+        port: 8080
+        requestPath: /{{ . }}/healthz
+  targetRef:
+    group: net.gke.io
+    kind: ServiceImport
+    name: {{ . }}
+---
+apiVersion: networking.gke.io/v1
+kind: GCPBackendPolicy
+metadata:
+  name: {{ . }}
+  namespace: {{ . }}
+  labels:
+    app.kubernetes.io/part-of: platform
+spec:
+  default:
+    securityPolicy: {{ $.Values.securityPolicy }}
+    timeoutSec: 30
+    logging:
+      enabled: true
+      sampleRate: 1000000
+    connectionDraining:
+      drainingTimeoutSec: 20
+  targetRef:
+    group: net.gke.io
+    kind: ServiceImport
+    name: {{ . }}
+---
+{{- end }}
