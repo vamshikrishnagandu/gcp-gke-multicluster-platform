@@ -54,6 +54,7 @@ gh variable set GATEWAY_IP --body "$IP"
 curl http://$IP/app1/        # shows which cluster/region answered
 curl http://$IP/app2/orders  # app2 -> app1 cross-service call
 ```
+The deployment script reads app1's MCS-derived ServiceImport name in each cluster and passes its mesh-compatible URL to app2.
 
 ## 7. Switch on the remaining features
 - Set `uptime_host = "<IP>"` and `alert_email` in tfvars, then run `terraform apply` again.

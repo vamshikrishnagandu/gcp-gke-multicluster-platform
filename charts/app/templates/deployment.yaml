@@ -61,7 +61,7 @@ spec:
             - name: API_KEY_SECRET
               value: projects/{{ .Values.projectID }}/secrets/app2-api-key/versions/latest
             - name: APP1_URL
-              value: {{ .Values.app1Url | quote }}
+              value: {{ required "app1Url must be set to the MCS-derived ServiceImport URL" .Values.app1Url | quote }}
             {{- end }}
           resources:
             requests:

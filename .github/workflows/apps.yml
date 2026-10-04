@@ -55,14 +55,17 @@ jobs:
         run: |
           for app in app1 app2; do
             image="us-docker.pkg.dev/ci/apps/$app:ci"
+            app1_url="http://app1.app1.svc.cluster.local:8080/app1/items"
             helm lint charts/app \
               --set-string appName="$app" \
               --set-string projectID=ci \
-              --set-string image="$image"
+              --set-string image="$image" \
+              --set-string app1Url="$app1_url"
             helm template "$app" charts/app --namespace "$app" \
               --set-string appName="$app" \
               --set-string projectID=ci \
-              --set-string image="$image" > /dev/null
+              --set-string image="$image" \
+              --set-string app1Url="$app1_url" > /dev/null
           done
           helm lint charts/gateway
           helm template platform-gateway charts/gateway --namespace gateway-infra > /dev/null

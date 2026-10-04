@@ -31,6 +31,8 @@ Regional clusters (3 zones), topology spread, PDB `maxUnavailable: 1`, HPA 3-12,
 | Redis | RDB snapshot every 12 hours | latest |
 | Images | Artifact Registry cleanup policies keep the newest 15 versions | 90 days |
 
+Memorystore uses regional `STANDARD_HA` with a replica in another zone and automatic failover. Memorystore read replicas are also region-local (and require at least 5 GB nodes), so they scale reads rather than provide cross-region Redis DR. Use a separately designed standby/restore strategy if cross-region cache recovery is required.
+
 ## Runbook
 **Region outage (automatic):** check `curl http://$IP/app1/`; the `region` field should show the surviving region. No action needed.
 
