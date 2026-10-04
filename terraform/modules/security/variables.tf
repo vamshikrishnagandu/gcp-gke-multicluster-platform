@@ -17,6 +17,7 @@ variable "app_roles" {
     "roles/monitoring.metricWriter",
     "roles/logging.logWriter",
     "roles/cloudsql.client",
+    "roles/cloudsql.instanceUser",
     "roles/datastore.user",
   ]
 }

@@ -1,6 +1,7 @@
 gatewayName: platform
 gatewayClassName: gke-l7-global-external-managed-mc
 addressName: platform-gateway-ip
+tlsCertName: ""
 apps:
   - app1
   - app2

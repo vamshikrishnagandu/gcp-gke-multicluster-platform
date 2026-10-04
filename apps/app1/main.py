@@ -1,7 +1,8 @@
 """app1 - "catalog" service.
 
 Public routes are served under /app1 (the global Gateway routes by path prefix).
-Uses Firestore (multi-region) via Workload Identity - no keys, no passwords.
+Uses Firestore (multi-region) for hit counts and Cloud SQL (PostgreSQL, IAM auth) for the item catalog,
+both via Workload Identity - no keys, no passwords.
 """
 
 import os
@@ -11,7 +12,7 @@ import time
 
 from flask import Blueprint, Flask, jsonify
 
-from common import observability
+from common import db, observability
 
 SERVICE = "app1"
 app = Flask(__name__)
@@ -50,18 +51,34 @@ def healthz():
     return {"status": "ok"}
 
 
+def load_items():
+    """Catalog from Cloud SQL; falls back to a static list so a database outage does not take /items down."""
+    if db.enabled():
+        try:
+            conn = db.connect(os.environ["DB_USER"])
+            try:
+                cur = conn.cursor()
+                cur.execute("SELECT id, name FROM catalog.items ORDER BY id")
+                return [{"id": r[0], "name": r[1]} for r in cur.fetchall()], "cloudsql"
+            finally:
+                conn.close()
+        except Exception:
+            log.exception("Cloud SQL read failed; serving fallback items")
+    return [{"id": i, "name": f"item-{i}"} for i in range(1, 6)], "fallback"
+
+
 @bp.get("/items")
 def items():
-    """Reads a counter from Firestore - demonstrates the data tier + a traced downstream call."""
+    """Hit counter in Firestore + catalog in Cloud SQL - demonstrates the data tier + traced downstream calls."""
     payload = where_am_i()
-    db = firestore_client()
-    if db is not None:
-        ref = db.collection("stats").document(SERVICE)
+    db_client = firestore_client()
+    if db_client is not None:
+        ref = db_client.collection("stats").document(SERVICE)
         from google.cloud import firestore
 
         ref.set({"hits": firestore.Increment(1)}, merge=True)
         payload["hits"] = (ref.get().to_dict() or {}).get("hits")
-    payload["items"] = [{"id": i, "name": f"item-{i}"} for i in range(1, 6)]
+    payload["items"], payload["items_source"] = load_items()
     return jsonify(payload)
 
 

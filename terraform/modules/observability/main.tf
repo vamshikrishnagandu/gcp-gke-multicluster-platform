@@ -155,9 +155,9 @@ resource "google_monitoring_uptime_check_config" "app" {
 
   http_check {
     path         = each.value
-    port         = 80
-    use_ssl      = false
-    validate_ssl = false
+    port         = var.uptime_use_ssl ? 443 : 80
+    use_ssl      = var.uptime_use_ssl
+    validate_ssl = var.uptime_use_ssl
   }
 
   monitored_resource {
@@ -166,6 +166,11 @@ resource "google_monitoring_uptime_check_config" "app" {
       project_id = var.project_id
       host       = var.uptime_host
     }
+  }
+
+  # Alert policies reference the check id; they must switch to the new check before the old one is deleted.
+  lifecycle {
+    create_before_destroy = true
   }
 }
 

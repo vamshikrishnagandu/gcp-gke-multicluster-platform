@@ -62,6 +62,24 @@ spec:
               value: projects/{{ .Values.projectID }}/secrets/app2-api-key/versions/latest
             - name: APP1_URL
               value: {{ required "app1Url must be set to the MCS-derived ServiceImport URL" .Values.app1Url | quote }}
+            {{- if .Values.redis.host }}
+            - name: REDIS_HOST
+              value: {{ .Values.redis.host | quote }}
+            - name: REDIS_PORT
+              value: {{ .Values.redis.port | quote }}
+            - name: REDIS_AUTH_SECRET
+              value: projects/{{ .Values.projectID }}/secrets/redis-auth-string/versions/latest
+            - name: REDIS_CA_SECRET
+              value: projects/{{ .Values.projectID }}/secrets/redis-ca-cert/versions/latest
+            {{- end }}
+            {{- end }}
+            {{- if and (eq .Values.appName "app1") .Values.db.connectionName }}
+            - name: CLOUDSQL_CONNECTION_NAME
+              value: {{ .Values.db.connectionName | quote }}
+            - name: DB_NAME
+              value: {{ .Values.db.name | quote }}
+            - name: DB_USER
+              value: wl-app1@{{ .Values.projectID }}.iam
             {{- end }}
           resources:
             requests:

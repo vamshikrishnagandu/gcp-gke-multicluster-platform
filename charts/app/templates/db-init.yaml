@@ -1,0 +1,71 @@
+{{- if and (eq .Values.appName "app1") .Values.db.connectionName }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: db-init
+  namespace: {{ .Values.appName }}
+  labels:
+    app.kubernetes.io/part-of: platform
+  annotations:
+    iam.gke.io/gcp-service-account: wl-db-init@{{ .Values.projectID }}.iam.gserviceaccount.com
+automountServiceAccountToken: false
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-init
+  namespace: {{ .Values.appName }}
+  labels:
+    app.kubernetes.io/part-of: platform
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app: db-init
+        app.kubernetes.io/part-of: platform
+        sidecar.istio.io/inject: "false" # a mesh sidecar would keep the Job from completing
+    spec:
+      serviceAccountName: db-init
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: db-init
+          image: {{ required "image must be set to an immutable image URL" .Values.image | quote }}
+          command: ["python", "-m", "common.dbinit"]
+          env:
+            - name: CLOUDSQL_CONNECTION_NAME
+              value: {{ .Values.db.connectionName | quote }}
+            - name: DB_NAME
+              value: {{ .Values.db.name | quote }}
+            - name: APP_DB_USER
+              value: wl-app1@{{ .Values.projectID }}.iam
+            - name: ADMIN_PASSWORD_SECRET
+              value: projects/{{ .Values.projectID }}/secrets/cloudsql-admin-password/versions/latest
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+{{- end }}

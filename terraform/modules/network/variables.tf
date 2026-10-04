@@ -8,12 +8,14 @@ variable "network_name" {
 }
 
 variable "subnets" {
-  description = "Map of short name -> region and CIDRs. One subnet per GKE cluster region."
+  description = "Map of short name -> region and CIDRs. Per region: GKE nodes, ops/monitoring, and a proxy-only subnet for Envoy-based load balancers."
   type = map(object({
     region        = string
     nodes_cidr    = string
     pods_cidr     = string
     services_cidr = string
+    ops_cidr      = string
+    proxy_cidr    = string
   }))
 }
 

@@ -18,6 +18,14 @@ output "subnets" {
   } }
 }
 
+output "ops_subnets" {
+  value = { for k, s in google_compute_subnetwork.ops : k => s.self_link }
+}
+
+output "proxy_only_subnets" {
+  value = { for k, s in google_compute_subnetwork.proxy_only : k => s.self_link }
+}
+
 output "psa_connection" {
   description = "Depend on this before creating Cloud SQL / Redis private IP instances."
   value       = google_service_networking_connection.psa.id

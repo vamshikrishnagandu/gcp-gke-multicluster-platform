@@ -17,6 +17,9 @@ locals {
   primary_region   = var.regions[local.cluster_keys[0]].region
   secondary_region = var.regions[local.cluster_keys[1]].region
   all_regions      = [for k in local.cluster_keys : var.regions[k].region]
+
+  # nip.io resolves <a>-<b>-<c>-<d>.nip.io to a.b.c.d, so a Google-managed cert works without owning a domain.
+  gateway_hostname = var.domain != "" ? var.domain : "${replace(google_compute_global_address.gateway.address, ".", "-")}.nip.io"
 }
 
 module "network" {
@@ -27,6 +30,8 @@ module "network" {
     nodes_cidr    = r.nodes_cidr
     pods_cidr     = r.pods_cidr
     services_cidr = r.services_cidr
+    ops_cidr      = r.ops_cidr
+    proxy_cidr    = r.proxy_cidr
   } }
 }
 
@@ -108,13 +113,69 @@ module "data" {
 module "observability" {
   source            = "../../modules/observability"
   project_id        = var.project_id
-  uptime_host       = var.uptime_host
+  uptime_host       = var.uptime_host != "" ? local.gateway_hostname : ""
+  uptime_use_ssl    = true
   alert_email       = var.alert_email
   grafana_principal = var.grafana_principal
+}
+
+module "iam" {
+  source     = "../../modules/iam"
+  project_id = var.project_id
+  developers = var.team_members.developers
+  operators  = var.team_members.operators
+  sres       = var.team_members.sres
+}
+
+# Schema/grants Job (charts/app, app1 namespace) uses KSA app1/db-init.
+resource "google_service_account_iam_member" "db_init_workload_identity" {
+  service_account_id = module.data.db_init_service_account_name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "serviceAccount:${module.gke[local.config_key].workload_pool}[app1/db-init]"
 }
 
 # Static anycast IP for the multi-cluster Gateway (referenced by charts/gateway).
 resource "google_compute_global_address" "gateway" {
   project = var.project_id
   name    = "platform-gateway-ip"
+}
+
+# Google-managed TLS certificate, attached to the Gateway by name (pre-shared cert).
+# The hash in the name lets a hostname change replace the cert without a name clash.
+resource "google_compute_managed_ssl_certificate" "gateway" {
+  project = var.project_id
+  name    = "platform-gw-${substr(sha1(local.gateway_hostname), 0, 8)}"
+
+  managed {
+    domains = [local.gateway_hostname]
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# Optional Cloud DNS zone for a domain you own; delegate its nameservers at your registrar.
+resource "google_dns_managed_zone" "public" {
+  count = var.dns_zone_domain != "" ? 1 : 0
+
+  project     = var.project_id
+  name        = "platform-public"
+  dns_name    = "${var.dns_zone_domain}."
+  description = "Public zone for the platform Gateway"
+
+  dnssec_config {
+    state = "on"
+  }
+}
+
+resource "google_dns_record_set" "gateway" {
+  count = var.dns_zone_domain != "" ? 1 : 0
+
+  project      = var.project_id
+  managed_zone = google_dns_managed_zone.public[0].name
+  name         = "${local.gateway_hostname}."
+  type         = "A"
+  ttl          = 300
+  rrdatas      = [google_compute_global_address.gateway.address]
 }

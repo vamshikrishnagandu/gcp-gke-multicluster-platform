@@ -6,3 +6,13 @@ minReplicas: 3
 maxReplicas: 12
 meshInjection: true
 app1Url: ""
+
+# app1 -> Cloud SQL (IAM auth over private IP). Empty connectionName = feature off.
+db:
+  connectionName: ""
+  name: app1
+
+# app2 -> Memorystore Redis (TLS + AUTH from Secret Manager). Empty host = feature off.
+redis:
+  host: ""
+  port: "6378"

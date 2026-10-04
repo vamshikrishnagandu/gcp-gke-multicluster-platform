@@ -70,3 +70,9 @@ variable "deletion_protection" {
   type    = bool
   default = true
 }
+
+variable "redis_app" {
+  description = "The app that reads the Redis auth string and CA certificate secrets."
+  type        = string
+  default     = "app2"
+}

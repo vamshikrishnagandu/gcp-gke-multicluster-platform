@@ -98,7 +98,9 @@ locals {
     "roles/containeranalysis.occurrences.editor",
     "roles/binaryauthorization.attestorsViewer",
     "roles/ondemandscanning.admin", # vulnerability gate in the pipeline
-    "roles/compute.viewer",         # deploy.sh reads the Gateway IP
+    "roles/compute.viewer",         # deploy.sh reads the Gateway IP and TLS certificate name
+    "roles/cloudsql.viewer",        # deploy.sh reads the Cloud SQL connection name
+    "roles/redis.viewer",           # deploy.sh reads the Redis host and port
   ]
 }
 

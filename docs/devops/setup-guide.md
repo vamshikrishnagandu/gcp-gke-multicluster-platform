@@ -53,9 +53,13 @@ Binary Authorization starts in `DRYRUN_AUDIT_LOG_ONLY` mode (see tfvars), so the
 bash scripts/deploy.sh "$PROJECT_ID" manual-1
 IP=$(cd terraform/envs/prod && terraform output -raw gateway_ip)
 gh variable set GATEWAY_IP --body "$IP"
-curl http://$IP/app1/        # shows which cluster/region answered
-curl http://$IP/app2/orders  # app2 -> app1 cross-service call
+HOST=$(cd terraform/envs/prod && terraform output -raw gateway_hostname)
+curl -sS https://$HOST/app1/        # shows which cluster/region answered
+curl -sS https://$HOST/app2/orders  # app2 -> app1 cross-service call; "cache" is hit/miss from Redis
 ```
+`HOST` is `terraform output -raw gateway_hostname` (default `<ip-with-dashes>.nip.io`). The Google-managed certificate can take up to about an hour to turn ACTIVE (`gcloud compute ssl-certificates list`); until then use `curl -k` or HTTP, which only redirects to HTTPS. Port 80 returns a 301 to HTTPS.
+
+To use your own domain, set `domain = "app.example.com"` and `dns_zone_domain = "example.com"` in tfvars, apply, then set the registrar nameservers to `terraform output dns_name_servers`.
 The deployment script reads the `net.gke.io/derived-service` annotation from app1's MCS ServiceImport in each cluster and passes the mesh-compatible URL (`http://<derived-service>.app1.svc.cluster.local:8080/app1/items`) to app2. It deploys Helm releases by immutable image digest, not tag.
 
 ## 7. Switch on the remaining features

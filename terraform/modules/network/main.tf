@@ -41,6 +41,37 @@ resource "google_compute_subnetwork" "subnet" {
   }
 }
 
+# Ops/monitoring tier: bastions, tooling and probes live here, apart from GKE nodes.
+resource "google_compute_subnetwork" "ops" {
+  for_each = var.subnets
+
+  project                  = var.project_id
+  name                     = "${var.network_name}-ops-${each.key}"
+  region                   = each.value.region
+  network                  = google_compute_network.vpc.id
+  ip_cidr_range            = each.value.ops_cidr
+  private_ip_google_access = true
+
+  log_config {
+    aggregation_interval = "INTERVAL_5_SEC"
+    flow_sampling        = 0.5
+    metadata             = "INCLUDE_ALL_METADATA"
+  }
+}
+
+# Load-balancer tier: reserved for regional/internal Envoy-based load balancers.
+resource "google_compute_subnetwork" "proxy_only" {
+  for_each = var.subnets
+
+  project       = var.project_id
+  name          = "${var.network_name}-proxy-${each.key}"
+  region        = each.value.region
+  network       = google_compute_network.vpc.id
+  ip_cidr_range = each.value.proxy_cidr
+  purpose       = "REGIONAL_MANAGED_PROXY"
+  role          = "ACTIVE"
+}
+
 # ---------------------------------------------------------------- Cloud NAT
 resource "google_compute_router" "router" {
   for_each = var.subnets
@@ -87,6 +118,25 @@ resource "google_compute_firewall" "allow_gfe_health_checks" {
   }
 }
 
+# Envoy proxies of regional/internal load balancers connect to backends from the proxy-only subnet.
+resource "google_compute_firewall" "allow_proxy_only" {
+  project       = var.project_id
+  name          = "${var.network_name}-allow-proxy-only"
+  network       = google_compute_network.vpc.id
+  direction     = "INGRESS"
+  priority      = 1000
+  source_ranges = [for s in var.subnets : s.proxy_cidr]
+
+  allow {
+    protocol = "tcp"
+    ports    = ["8080"]
+  }
+
+  log_config {
+    metadata = "INCLUDE_ALL_METADATA"
+  }
+}
+
 # Cross-cluster traffic (Multi-Cluster Services: app2 in cluster A -> app1 pod in cluster B).
 # GKE only auto-creates rules for a cluster's OWN pod range, so without this the
 # deny-all below would silently break cross-region service calls.
@@ -97,7 +147,7 @@ resource "google_compute_firewall" "allow_internal" {
   direction = "INGRESS"
   priority  = 1000
   source_ranges = flatten([
-    for s in var.subnets : [s.nodes_cidr, s.pods_cidr]
+    for s in var.subnets : [s.nodes_cidr, s.pods_cidr, s.ops_cidr]
   ])
 
   allow {

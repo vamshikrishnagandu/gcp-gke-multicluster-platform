@@ -10,6 +10,8 @@ variable "regions" {
     pods_cidr     = string
     services_cidr = string
     master_cidr   = string
+    ops_cidr      = string
+    proxy_cidr    = string
   }))
   default = {
     usc1 = {
@@ -18,6 +20,8 @@ variable "regions" {
       pods_cidr     = "10.20.0.0/16"
       services_cidr = "10.30.0.0/20"
       master_cidr   = "172.16.0.0/28"
+      ops_cidr      = "10.12.0.0/24"
+      proxy_cidr    = "10.14.0.0/23"
     }
     use1 = {
       region        = "us-east1"
@@ -25,6 +29,8 @@ variable "regions" {
       pods_cidr     = "10.21.0.0/16"
       services_cidr = "10.31.0.0/20"
       master_cidr   = "172.16.0.16/28"
+      ops_cidr      = "10.13.0.0/24"
+      proxy_cidr    = "10.15.0.0/23"
     }
   }
 }
@@ -83,9 +89,31 @@ variable "binauthz_enforcement_mode" {
 }
 
 variable "uptime_host" {
-  description = "Set to the Gateway IP after the first deploy to enable uptime checks."
+  description = "Any non-empty value enables uptime checks; they probe the HTTPS gateway hostname (see output gateway_hostname)."
   type        = string
   default     = ""
+}
+
+variable "domain" {
+  description = "Public hostname served by the Gateway. Empty = <ip-with-dashes>.nip.io (free wildcard DNS, no registrar needed)."
+  type        = string
+  default     = ""
+}
+
+variable "dns_zone_domain" {
+  description = "DNS-zone apex you own (e.g. example.com). Set together with domain to create a Cloud DNS zone and the A record; then delegate the zone's nameservers at your registrar."
+  type        = string
+  default     = ""
+}
+
+variable "team_members" {
+  description = "Role-based access: members (user:/group:/serviceAccount: prefixed) per team. See modules/iam."
+  type = object({
+    developers = optional(list(string), [])
+    operators  = optional(list(string), [])
+    sres       = optional(list(string), [])
+  })
+  default = {}
 }
 
 variable "alert_email" {

@@ -14,6 +14,14 @@ output "sql_iam_users" {
   value = { for k, u in google_sql_user.app_iam : k => u.name }
 }
 
+output "db_init_service_account" {
+  value = google_service_account.db_init.email
+}
+
+output "db_init_service_account_name" {
+  value = google_service_account.db_init.name
+}
+
 output "redis_host" {
   value = google_redis_instance.cache.host
 }

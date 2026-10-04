@@ -18,6 +18,23 @@ output "gateway_ip_name" {
   value = google_compute_global_address.gateway.name
 }
 
+output "gateway_hostname" {
+  value = local.gateway_hostname
+}
+
+output "gateway_certificate" {
+  value = google_compute_managed_ssl_certificate.gateway.name
+}
+
+output "dns_name_servers" {
+  description = "Set these at your registrar when dns_zone_domain is used."
+  value       = try(google_dns_managed_zone.public[0].name_servers, [])
+}
+
+output "team_roles" {
+  value = module.iam.team_roles
+}
+
 output "registry" {
   value = module.registry.repository_url
 }

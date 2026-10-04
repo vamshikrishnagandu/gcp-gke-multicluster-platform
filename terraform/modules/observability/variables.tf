@@ -20,6 +20,12 @@ variable "uptime_host" {
   default     = ""
 }
 
+variable "uptime_use_ssl" {
+  description = "Probe https:443 and validate the certificate (true) or plain http:80 (false)."
+  type        = bool
+  default     = true
+}
+
 variable "uptime_paths" {
   description = "Paths probed by uptime checks (one per app)."
   type        = map(string)

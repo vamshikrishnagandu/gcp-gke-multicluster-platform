@@ -9,9 +9,20 @@ spec:
     - type: NamedAddress
       value: {{ .Values.addressName }}
   listeners:
+    # Port 80 only redirects to HTTPS (see redirect.yaml).
     - name: http
       protocol: HTTP
       port: 80
+      allowedRoutes:
+        namespaces:
+          from: Same
+    - name: https
+      protocol: HTTPS
+      port: 443
+      tls:
+        mode: Terminate
+        options:
+          networking.gke.io/pre-shared-certs: {{ required "tlsCertName must be set to the Google-managed certificate name (terraform output gateway_certificate)" .Values.tlsCertName | quote }}
       allowedRoutes:
         namespaces:
           from: Selector

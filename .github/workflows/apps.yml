@@ -60,15 +60,20 @@ jobs:
               --set-string appName="$app" \
               --set-string projectID=ci \
               --set-string image="$image" \
-              --set-string app1Url="$app1_url"
+              --set-string app1Url="$app1_url" \
+              --set-string db.connectionName=ci:us-central1:pg \
+              --set-string redis.host=10.0.0.3
             helm template "$app" charts/app --namespace "$app" \
               --set-string appName="$app" \
               --set-string projectID=ci \
               --set-string image="$image" \
-              --set-string app1Url="$app1_url" > /dev/null
+              --set-string app1Url="$app1_url" \
+              --set-string db.connectionName=ci:us-central1:pg \
+              --set-string redis.host=10.0.0.3 > /dev/null
           done
-          helm lint charts/gateway
-          helm template platform-gateway charts/gateway --namespace gateway-infra > /dev/null
+          helm lint charts/gateway --set-string tlsCertName=ci-cert
+          helm template platform-gateway charts/gateway --namespace gateway-infra \
+            --set-string tlsCertName=ci-cert > /dev/null
 
   build-sign-deploy:
     needs: test

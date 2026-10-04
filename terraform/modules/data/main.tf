@@ -234,6 +234,26 @@ resource "google_secret_manager_secret_version" "sql_admin" {
   secret_data = random_password.sql_admin.result
 }
 
+# One-shot schema/grant job (Helm hook in charts/app): the only workload that may read the admin password.
+resource "google_service_account" "db_init" {
+  project      = var.project_id
+  account_id   = "wl-db-init"
+  display_name = "Database schema and grants job"
+}
+
+resource "google_project_iam_member" "db_init_sql_client" {
+  project = var.project_id
+  role    = "roles/cloudsql.client"
+  member  = "serviceAccount:${google_service_account.db_init.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "db_init_admin_password" {
+  project   = var.project_id
+  secret_id = google_secret_manager_secret.sql_admin.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.db_init.email}"
+}
+
 # ---------------------------------------------------------------- Memorystore Redis
 resource "google_redis_instance" "cache" {
   project            = var.project_id
@@ -262,6 +282,44 @@ resource "google_redis_instance" "cache" {
       }
     }
   }
+}
+
+# Connection secrets for the cache client; only the app named in redis_app can read them.
+resource "google_secret_manager_secret" "redis" {
+  for_each = toset(["redis-auth-string", "redis-ca-cert"])
+
+  project   = var.project_id
+  secret_id = each.key
+
+  replication {
+    user_managed {
+      dynamic "replicas" {
+        for_each = var.secret_replica_regions
+        content {
+          location = replicas.value
+        }
+      }
+    }
+  }
+}
+
+resource "google_secret_manager_secret_version" "redis_auth" {
+  secret      = google_secret_manager_secret.redis["redis-auth-string"].id
+  secret_data = google_redis_instance.cache.auth_string
+}
+
+resource "google_secret_manager_secret_version" "redis_ca" {
+  secret      = google_secret_manager_secret.redis["redis-ca-cert"].id
+  secret_data = google_redis_instance.cache.server_ca_certs[0].cert
+}
+
+resource "google_secret_manager_secret_iam_member" "redis_client" {
+  for_each = google_secret_manager_secret.redis
+
+  project   = var.project_id
+  secret_id = each.value.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${var.app_service_accounts[var.redis_app]}"
 }
 
 resource "google_storage_bucket" "redis_dr" {
