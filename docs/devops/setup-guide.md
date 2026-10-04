@@ -50,12 +50,14 @@ Binary Authorization starts in `DRYRUN_AUDIT_LOG_ONLY` mode (see tfvars), so the
 ```bash
 bash scripts/deploy.sh "$PROJECT_ID" manual-1
 IP=$(cd terraform/envs/prod && terraform output -raw gateway_ip)
+gh variable set GATEWAY_IP --body "$IP"
 curl http://$IP/app1/        # shows which cluster/region answered
 curl http://$IP/app2/orders  # app2 -> app1 cross-service call
 ```
 
 ## 7. Switch on the remaining features
 - Set `uptime_host = "<IP>"` and `alert_email` in tfvars, then run `terraform apply` again.
+- In GitHub repository Settings > Secrets and variables > Actions, set repository variable `GATEWAY_IP` to the gateway IP and encrypted repository secret `ALERT_EMAIL` to the alert recipient. CI checks both values before planning.
 - Once CI signs images, set `binauthz_enforcement_mode = "ENFORCED_BLOCK_AND_AUDIT_LOG"`.
 - GitHub: create an environment called `prod` with yourself as a required reviewer.
 

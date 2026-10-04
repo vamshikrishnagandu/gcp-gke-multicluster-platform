@@ -55,6 +55,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: validate required Actions configuration
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          GCP_TF_SA: ${{ vars.GCP_TF_SA }}
+          GCP_APPS_SA: ${{ vars.GCP_APPS_SA }}
+          TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+          GATEWAY_IP: ${{ vars.GATEWAY_IP }}
+          ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
+        run: |
+          missing=0
+          for name in GCP_PROJECT_ID GCP_TF_SA GCP_APPS_SA TF_STATE_BUCKET GATEWAY_IP ALERT_EMAIL; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Required Actions configuration is missing: $name"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
       - id: auth
         uses: google-github-actions/auth@v2
         with:
@@ -74,6 +92,7 @@ jobs:
       - name: plan
         id: plan
         run: |
+          set -o pipefail
           terraform plan -input=false -no-color -out=tfplan \
             -var="project_id=${{ vars.GCP_PROJECT_ID }}" \
             -var="ci_apps_sa=${{ vars.GCP_APPS_SA }}" \
@@ -81,7 +100,7 @@ jobs:
             -var="deletion_protection=false" \
             -var="binauthz_enforcement_mode=${{ vars.BINAUTHZ_MODE || 'ENFORCED_BLOCK_AND_AUDIT_LOG' }}" \
             -var="uptime_host=${{ vars.GATEWAY_IP }}" \
-            -var="alert_email=${{ vars.ALERT_EMAIL }}" | tee plan.txt
+            -var="alert_email=${ALERT_EMAIL}" | tee plan.txt
 
       - name: comment plan on PR
         if: github.event_name == 'pull_request'

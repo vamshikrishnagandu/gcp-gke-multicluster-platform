@@ -77,6 +77,7 @@ locals {
     "roles/binaryauthorization.policyEditor",
     "roles/binaryauthorization.attestorsAdmin",
     "roles/cloudkms.admin",
+    "roles/cloudkms.publicKeyViewer",
     "roles/servicenetworking.networksAdmin",
     "roles/logging.configWriter",
     "roles/bigquery.admin",

@@ -84,7 +84,7 @@ jobs:
 
       - uses: google-github-actions/setup-gcloud@v2
         with:
-          install_components: gke-gcloud-auth-plugin,kubectl,local-extract
+          install_components: gke-gcloud-auth-plugin,kubectl,local-extract,beta
 
       - name: docker login (Artifact Registry)
         run: gcloud auth configure-docker us-docker.pkg.dev,us-east1-docker.pkg.dev --quiet
