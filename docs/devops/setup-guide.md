@@ -3,6 +3,8 @@
 Diagram: [`diagrams/03-devops-cicd.drawio`](../../diagrams/03-devops-cicd.drawio)
 Prerequisites: Phase 0 of the [learning log](../learning-log.md) (tools + `gcloud auth login` + `gcloud auth application-default login`).
 
+Kubernetes resources have one source of truth: the Helm charts in `charts/`. `charts/app` is installed in both clusters; `charts/gateway` is installed in the config cluster. The old `k8s/` directories contain no tracked manifests. Do not apply a second copy of standalone Kubernetes YAML.
+
 ## 1. Bootstrap (once, from your laptop)
 ```bash
 cd terraform/bootstrap
@@ -54,13 +56,15 @@ gh variable set GATEWAY_IP --body "$IP"
 curl http://$IP/app1/        # shows which cluster/region answered
 curl http://$IP/app2/orders  # app2 -> app1 cross-service call
 ```
-The deployment script reads app1's MCS-derived ServiceImport name in each cluster and passes its mesh-compatible URL to app2.
+The deployment script reads the `net.gke.io/derived-service` annotation from app1's MCS ServiceImport in each cluster and passes the mesh-compatible URL (`http://<derived-service>.app1.svc.cluster.local:8080/app1/items`) to app2. It deploys Helm releases by immutable image digest, not tag.
 
 ## 7. Switch on the remaining features
 - Set `uptime_host = "<IP>"` and `alert_email` in tfvars, then run `terraform apply` again.
 - In GitHub repository Settings > Secrets and variables > Actions, set repository variable `GATEWAY_IP` to the gateway IP and encrypted repository secret `ALERT_EMAIL` to the alert recipient. CI checks both values before planning and refuses to auto-apply plans containing deletions.
-- Once CI signs images, set `binauthz_enforcement_mode = "ENFORCED_BLOCK_AND_AUDIT_LOG"`.
+- The Terraform workflow validates and plans on pull requests; production apply runs only on `main` through the `prod` environment. The app workflow runs Python tests and Helm lint/render, builds and mirrors immutable images, blocks CRITICAL scan findings, creates Binary Authorization attestations, and deploys by digest. Pull requests do not receive cloud credentials.
+- Current production enforces `ENFORCED_BLOCK_AND_AUDIT_LOG`. For a fresh project, keep the initial dry-run mode until CI has produced valid attestations, then set `binauthz_enforcement_mode = "ENFORCED_BLOCK_AND_AUDIT_LOG"`.
 - GitHub: create an environment called `prod` with yourself as a required reviewer.
+- Complete Google's email verification link for the Monitoring notification channel before relying on email delivery.
 
 ## 8. Grafana Cloud
 1. Create a Grafana Cloud stack and install the signed **Google BigQuery** data source plugin.
@@ -78,7 +82,7 @@ The deployment script reads app1's MCS-derived ServiceImport name in each cluste
 3. In Grafana, add a **Google BigQuery** data source. Select **Google JWT File**, upload `grafana-auth.json`, enable **Service account impersonation**, and set the target to `grafana-reader@$PROJECT_ID.iam.gserviceaccount.com`. Set **Default project** to `$PROJECT_ID`, then click **Save & test**.
 4. Add a **Google Cloud Monitoring** data source using the same JWT file and service-account impersonation target. Set the project to `$PROJECT_ID`, click **Save & test**, and use PromQL queries for Managed Prometheus metrics.
 5. Import `grafana/dashboards/platform-overview.json`, map `DS_BIGQUERY` to BigQuery and `DS_PROMETHEUS` to Google Cloud Monitoring, then keep the `project` variable default set to `$PROJECT_ID`.
-6. Keep the key active while Grafana Cloud uses it. Delete the local copy after upload; revoke/rotate the GCP key only when replacing it in Grafana.
+6. The overview dashboard uses BigQuery panels for logs, errors, latency, resources, WAF and cluster traffic, plus Cloud Monitoring PromQL panels for app request rate, 5xx rate and p95 latency. Keep the key active while Grafana Cloud uses it. Delete the local copy after upload; revoke/rotate the GCP key when replacing it in Grafana.
 
 Cloud Service Mesh is managed through Fleet memberships and injects an Envoy sidecar into each app pod. Standalone pricing currently estimates about $0.50 per mesh client per month; at 12 minimum app replicas this is about $6/month, before any custom metrics or scale-out. Confirm current billing terms in Cloud Billing.
 

@@ -7,7 +7,8 @@ Open-book assessment: a production-style platform on Google Cloud, built entirel
 - Two GKE (Google Kubernetes Engine) clusters in two regions for high availability
 - Two web applications with scalable multi-pod replicas
 - Global load balancing with intelligent traffic distribution (multi-cluster Gateway)
-- Full observability: logs, metrics, traces, errors (Cloud Logging -> BigQuery -> Grafana)
+- Full observability: Cloud Logging -> BigQuery for operational dashboards, Managed Prometheus -> Cloud Monitoring for live PromQL panels, plus Cloud Trace, Profiler and Error Reporting
+- Managed Cloud Service Mesh on both Fleet memberships, with Envoy sidecars and MCS-backed app2-to-app1 traffic
 - Built-in security, resilience and compliance controls (Workload Identity, Secret Manager, Cloud Armor, Binary Authorization)
 - Data tier: Cloud SQL (HA + cross-region replica), Memorystore Redis (HA), Firestore (multi-region)
 - CI/CD with GitHub Actions (keyless auth via Workload Identity Federation)
@@ -21,7 +22,7 @@ Open-book assessment: a production-style platform on Google Cloud, built entirel
 | `terraform/modules/` | Reusable building blocks (network, gke, fleet, registry, data, security, observability) |
 | `terraform/envs/prod/` | The environment that wires modules together |
 | `apps/` | Source + Dockerfiles for app1 and app2 |
-| `charts/` | Helm charts for app1/app2 and the config-cluster multi-cluster Gateway |
+| `charts/` | Source of truth for app1/app2 and the config-cluster multi-cluster Gateway; Helm renders the Kubernetes resources |
 | `grafana/` | Dashboard JSON, BigQuery schema and SQL queries |
 | `scripts/` | `deploy.sh` - deploy both apps to both clusters |
 | `.github/` | CI/CD workflows and issue templates |
@@ -36,6 +37,13 @@ Open-book assessment: a production-style platform on Google Cloud, built entirel
 | SecOps | [security-design](docs/secops/security-design.md) | [05-secops-security](diagrams/05-secops-security.drawio) |
 
 BigQuery schema and Grafana queries: [grafana/bigquery-schema.md](grafana/bigquery-schema.md).
+
+Kubernetes resources are managed through `charts/app` and `charts/gateway`. The old `k8s/` directories contain no tracked manifests and are not part of deployment; there is no separate YAML tree to apply by hand.
+
+## Current operational notes
+Memorystore Redis is a 1 GB regional `STANDARD_HA` instance with zonal automatic failover and 12-hour RDB snapshots. Cross-region Redis replication/recovery is not configured; a regional standby or restore design remains a separate decision. Google Cloud Monitoring's email notification channel also needs the recipient to complete Google's verification link before email alerts can be relied on.
+
+Managed Cloud Service Mesh adds an estimated $0.50 per mesh client per month under standalone pricing. The 12 minimum app replicas are currently about $6/month before scale-out or custom metrics; check Cloud Billing for the active plan.
 
 ## Quick start
 See [docs/devops/setup-guide.md](docs/devops/setup-guide.md).

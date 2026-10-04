@@ -14,8 +14,8 @@ Diagram: [`diagrams/05-secops-security.drawio`](../../diagrams/05-secops-securit
 ## Threat model (STRIDE summary)
 | Threat | Mitigation |
 |---|---|
-| Stolen CI credentials | No keys exist; WIF tokens accepted only from this repo; `prod` environment approval |
-| Malicious or unscanned image | Immutable tags, CRITICAL vulnerability gate, signed attestation, Binary Authorization |
+| Stolen CI credentials | No CI keys exist; WIF checks immutable repository/owner IDs, `main`, the `prod` environment and permitted push/manual events; pull requests receive static checks only |
+| Malicious or unscanned image | Immutable SHA tags, CRITICAL vulnerability gate, KMS-backed digest attestation in primary and recovery registries, enforced Binary Authorization |
 | Web attacks (SQLi/XSS) | Cloud Armor OWASP CRS |
 | L7 DDoS | Rate limit + Adaptive Protection + Google edge |
 | Lateral movement in the cluster | NetworkPolicy default-deny, PSA `restricted`, no SA token automount |
@@ -26,8 +26,10 @@ Diagram: [`diagrams/05-secops-security.drawio`](../../diagrams/05-secops-securit
 ## CI identities
 `ci-terraform` is broad (`roles/editor` + IAM admin roles) because it builds the whole platform. This is an **accepted risk**, mitigated by: repo-pinned WIF, `main`-only apply, and environment approval. For production I'd split it per module, or use the Privileged Access Manager for just-in-time elevation.
 
+The app workflow also runs Ruff and app smoke tests, lints/renders both Helm charts, builds and mirrors images, blocks CRITICAL scan findings, signs both registry digests, then deploys by digest through `scripts/deploy.sh`. Terraform CI uses `pipefail`, validates required inputs, scopes `ALERT_EMAIL` as an encrypted secret, and blocks plans containing deletions.
+
 ## Accepted risks (`.checkov.yaml`)
-Google-managed encryption instead of customer-managed keys (CMEK), a public (IAM-protected) control-plane DNS endpoint, and a Grafana service account key (ADR 0003).
+Google-managed encryption instead of customer-managed keys (CMEK), a public (IAM-protected) control-plane DNS endpoint, and the operator-managed Grafana service-account key used for JWT authentication and `grafana-reader` impersonation (ADR 0003). The key is stored in Grafana's encrypted datasource settings, never in the repository.
 
 ## Compliance evidence
 Cloud Audit Logs (admin activity, always on), log exports to BigQuery, Binary Authorization audit logs, Cloud Armor verbose logs, VPC flow logs and firewall logs.
