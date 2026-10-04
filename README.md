@@ -159,7 +159,7 @@ curl https://$HOST/app2/orders     # cache: miss, then hit
    ```
 3. Terraform creates a Google-managed certificate; the gateway has an HTTPS listener (443) using it and an HTTP listener (80) that only redirects.
 4. `deploy.sh` attaches the certificate. It turns ACTIVE minutes to an hour after DNS resolves (`gcloud compute ssl-certificates list`).
-5. Click the ICANN verification email, or the domain can be suspended.
+5. Click the ICANN verification email, or the domain can be suspended (done for this domain: status ACTIVE, no issues).
 
 Changing the hostname later: apply, run `deploy.sh` (attaches old and new certificates together), wait for ACTIVE, deploy again, then apply once more so Terraform can delete the old certificate.
 
@@ -382,7 +382,7 @@ Detailed records: [docs/techlead/adr/](docs/techlead/adr/).
 
 ## 12. Open items and known limits
 - **Alert email:** the channel is attached to all five policies; the recipient must click Google's verification link.
-- **Domain email verification:** the registrant must click the ICANN verification email for `vamshicloudlab.com`.
+- **Domain registration:** `vamshicloudlab.com` is ACTIVE and its registrant email is verified; keep auto-renew on (it expires 2027-10-04).
 - **Redis recovery drill:** the restore path is documented and exports run, but a full restore has not been timed. Redis is not live-replicated across regions.
 - **app1 database latency:** the Cloud SQL primary is in us-central1, so app1 pods in us-east1 connect across regions.
 - **Bootstrap state:** the bootstrap Terraform state is not in the shared state bucket; two CI roles (`cloudsql.viewer`, `redis.viewer`) were granted with gcloud and match the code.
