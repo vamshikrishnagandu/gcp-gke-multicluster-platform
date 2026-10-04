@@ -27,10 +27,6 @@ provider "google" {
 }
 
 locals {
-  github_repository_parts = split("/", var.github_repository)
-  github_repository_owner = local.github_repository_parts[0]
-  github_repository_name  = local.github_repository_parts[1]
-
   apis = [
     "artifactregistry.googleapis.com",
     "bigquery.googleapis.com",
