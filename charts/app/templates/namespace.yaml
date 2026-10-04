@@ -6,3 +6,10 @@ metadata:
     app.kubernetes.io/part-of: platform
     pod-security.kubernetes.io/enforce: restricted
     pod-security.kubernetes.io/enforce-version: latest
+    {{- if .Values.meshInjection }}
+    istio-injection: enabled
+    {{- end }}
+  {{- if .Values.meshInjection }}
+  annotations:
+    mesh.cloud.google.com/proxy: '{"managed":"true"}'
+  {{- end }}

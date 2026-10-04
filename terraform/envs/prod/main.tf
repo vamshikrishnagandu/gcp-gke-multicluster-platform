@@ -81,6 +81,12 @@ module "fleet" {
   project_id        = var.project_id
   config_membership = module.gke[local.config_key].membership
   workload_pool     = module.gke[local.config_key].workload_pool
+  memberships = {
+    for key, cluster in module.gke : key => {
+      id       = cluster.membership_id
+      location = cluster.membership_location
+    }
+  }
 }
 
 module "data" {

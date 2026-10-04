@@ -6,11 +6,18 @@
       "type": "datasource",
       "pluginId": "grafana-bigquery-datasource",
       "pluginName": "Google BigQuery"
+    },
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Google Cloud Monitoring",
+      "type": "datasource",
+      "pluginId": "stackdriver",
+      "pluginName": "Google Cloud Monitoring"
     }
   ],
   "title": "GKE Multi-Cluster Platform - Overview",
   "uid": "gke-mc-overview",
-  "tags": ["gke", "bigquery", "platform"],
+  "tags": ["gke", "bigquery", "managed-prometheus", "platform"],
   "timezone": "browser",
   "schemaVersion": 39,
   "refresh": "5m",
@@ -21,8 +28,8 @@
         "name": "project",
         "label": "GCP project",
         "type": "textbox",
-        "query": "PROJECT_ID",
-        "current": { "text": "PROJECT_ID", "value": "PROJECT_ID" }
+        "query": "gke-mc-platform-100324148",
+        "current": { "text": "gke-mc-platform-100324148", "value": "gke-mc-platform-100324148" }
       }
     ]
   },
@@ -146,6 +153,69 @@
         }
       ],
       "transformations": [{ "id": "prepareTimeSeries", "options": { "format": "multi" } }]
+    },
+    {
+      "id": 8,
+      "title": "App request rate (Managed Prometheus)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 26 },
+      "datasource": { "type": "stackdriver", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "targets": [
+        {
+          "datasource": { "type": "stackdriver", "uid": "${DS_PROMETHEUS}" },
+          "refId": "A",
+          "queryType": "promQL",
+          "timeSeriesList": { "projectName": "${project}", "filters": [], "view": "FULL" },
+          "promQLQuery": {
+            "projectName": "${project}",
+            "expr": "sum by (service) (rate(http_requests_total[5m]))",
+            "step": "30s"
+          }
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "App 5xx request rate (Managed Prometheus)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 26 },
+      "datasource": { "type": "stackdriver", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "targets": [
+        {
+          "datasource": { "type": "stackdriver", "uid": "${DS_PROMETHEUS}" },
+          "refId": "A",
+          "queryType": "promQL",
+          "timeSeriesList": { "projectName": "${project}", "filters": [], "view": "FULL" },
+          "promQLQuery": {
+            "projectName": "${project}",
+            "expr": "sum by (service) (rate(http_requests_total{code=~\"5..\"}[5m]))",
+            "step": "30s"
+          }
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "App p95 request latency (Managed Prometheus)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 34 },
+      "datasource": { "type": "stackdriver", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "datasource": { "type": "stackdriver", "uid": "${DS_PROMETHEUS}" },
+          "refId": "A",
+          "queryType": "promQL",
+          "timeSeriesList": { "projectName": "${project}", "filters": [], "view": "FULL" },
+          "promQLQuery": {
+            "projectName": "${project}",
+            "expr": "histogram_quantile(0.95, sum by (le, service) (rate(http_request_duration_seconds_bucket[5m])))",
+            "step": "30s"
+          }
+        }
+      ]
     }
   ]
 }

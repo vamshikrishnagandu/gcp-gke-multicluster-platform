@@ -4,3 +4,5 @@ image: ""
 replicas: 3
 minReplicas: 3
 maxReplicas: 12
+meshInjection: true
+app1Url: http://app1.app1.svc.clusterset.local:8080/app1/items

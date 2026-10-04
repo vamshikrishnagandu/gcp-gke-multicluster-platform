@@ -37,13 +37,23 @@ for entry in "${CLUSTERS[@]}"; do
     --project "${PROJECT_ID}" --dns-endpoint
 
   for app in app1 app2; do
-    helm upgrade --install "$app" "${ROOT}/charts/app" \
-      --namespace "$app" --create-namespace \
-      --take-ownership --force-conflicts \
-      --set-string "appName=$app" \
-      --set-string "projectID=$PROJECT_ID" \
-      --set-string "image=$(image_for "$app")" \
-      --wait --timeout 10m
+    helm_args=(upgrade --install "$app" "${ROOT}/charts/app"
+      --namespace "$app" --create-namespace
+      --take-ownership --force-conflicts
+      --set-string "appName=$app"
+      --set-string "projectID=$PROJECT_ID"
+      --set-string "image=$(image_for "$app")")
+    if [[ "$app" == "app2" ]]; then
+      imported_service="$(kubectl -n app1 get serviceimport app1 \
+        -o jsonpath='{.metadata.annotations.net\.gke\.io/derived-service}')"
+      if [[ -z "$imported_service" ]]; then
+        echo "ServiceImport app1 has no MCS-derived service name in ${name}" >&2
+        exit 1
+      fi
+      helm_args+=(--set-string "app1Url=http://${imported_service}.app1.svc.cluster.local:8080/app1/items")
+    fi
+
+    helm "${helm_args[@]}" --wait --timeout 10m
   done
 
   if [[ "${name}" == "${CONFIG_CLUSTER}" ]]; then

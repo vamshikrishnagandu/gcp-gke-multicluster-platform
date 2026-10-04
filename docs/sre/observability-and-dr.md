@@ -13,7 +13,7 @@ Diagrams: [`diagrams/04-sre-observability-dr.drawio`](../../diagrams/04-sre-obse
 | Signal | Collected by | Stored / viewed |
 |---|---|---|
 | Logs | GKE logging agent (JSON stdout) | Cloud Logging -> BigQuery `platform_logs` |
-| Metrics | Managed Prometheus (`PodMonitoring`), system metrics | Cloud Monitoring |
+| Metrics | Managed Prometheus (`PodMonitoring`), system metrics | Cloud Monitoring; Grafana queries PromQL through the Google Cloud Monitoring datasource |
 | Traces | OpenTelemetry -> Cloud Trace (20 % sampling) | Cloud Trace |
 | Profiles | Cloud Profiler agent | Cloud Profiler |
 | Errors | Stack traces in ERROR logs | Error Reporting |

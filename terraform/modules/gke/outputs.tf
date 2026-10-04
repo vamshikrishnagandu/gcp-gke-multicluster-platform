@@ -15,6 +15,14 @@ output "membership" {
   value       = "projects/${var.project_id}/locations/${google_container_cluster.this.fleet[0].membership_location}/memberships/${google_container_cluster.this.fleet[0].membership_id}"
 }
 
+output "membership_id" {
+  value = google_container_cluster.this.fleet[0].membership_id
+}
+
+output "membership_location" {
+  value = google_container_cluster.this.fleet[0].membership_location
+}
+
 output "dns_endpoint" {
   value = google_container_cluster.this.control_plane_endpoints_config[0].dns_endpoint_config[0].endpoint
 }

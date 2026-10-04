@@ -46,3 +46,23 @@ resource "google_project_iam_member" "mci_controller" {
 
   depends_on = [google_gke_hub_feature.mci]
 }
+
+resource "google_gke_hub_feature" "mesh" {
+  project  = var.project_id
+  name     = "servicemesh"
+  location = "global"
+}
+
+resource "google_gke_hub_feature_membership" "mesh" {
+  for_each = var.memberships
+
+  project             = var.project_id
+  location            = "global"
+  feature             = google_gke_hub_feature.mesh.name
+  membership          = each.value.id
+  membership_location = each.value.location
+
+  mesh {
+    management = "MANAGEMENT_AUTOMATIC"
+  }
+}

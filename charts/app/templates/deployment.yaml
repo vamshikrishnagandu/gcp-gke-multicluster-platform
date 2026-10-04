@@ -22,6 +22,8 @@ spec:
       labels:
         app: {{ .Values.appName }}
         app.kubernetes.io/part-of: platform
+      annotations:
+        platform.gke.io/mesh-injection: {{ .Values.meshInjection | quote }}
     spec:
       serviceAccountName: {{ .Values.appName }}
       terminationGracePeriodSeconds: 30
@@ -59,7 +61,7 @@ spec:
             - name: API_KEY_SECRET
               value: projects/{{ .Values.projectID }}/secrets/app2-api-key/versions/latest
             - name: APP1_URL
-              value: http://app1.app1.svc.clusterset.local:8080/app1/items
+              value: {{ .Values.app1Url | quote }}
             {{- end }}
           resources:
             requests:
@@ -82,8 +84,8 @@ spec:
             failureThreshold: 3
           lifecycle:
             preStop:
-              sleep:
-                seconds: 10
+              exec:
+                command: ["/bin/sh", "-c", "sleep 10"]
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

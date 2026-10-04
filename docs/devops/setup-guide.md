@@ -63,7 +63,7 @@ curl http://$IP/app2/orders  # app2 -> app1 cross-service call
 
 ## 8. Grafana Cloud
 1. Create a Grafana Cloud stack and install the signed **Google BigQuery** data source plugin.
-2. Create a local key for the credential-only service account. Its only permission is to impersonate `grafana-reader`; it has no direct BigQuery roles.
+2. Create a local key for the credential-only service account. Its only permission is to impersonate `grafana-reader`; it has no direct data-reader roles.
    ```bash
    umask 077
    mkdir -p "$HOME/.config/grafana"
@@ -75,8 +75,11 @@ curl http://$IP/app2/orders  # app2 -> app1 cross-service call
    ```
    Service-account keys are long-lived credentials. Do not commit, paste, or share this file.
 3. In Grafana, add a **Google BigQuery** data source. Select **Google JWT File**, upload `grafana-auth.json`, enable **Service account impersonation**, and set the target to `grafana-reader@$PROJECT_ID.iam.gserviceaccount.com`. Set **Default project** to `$PROJECT_ID`, then click **Save & test**.
-4. Import `grafana/dashboards/platform-overview.json`, map `DS_BIGQUERY` to the BigQuery data source, set the `project` variable to `$PROJECT_ID`, then save with **Update default variable values** enabled.
-5. Keep the key active while Grafana Cloud uses it. Delete the local copy after upload; revoke/rotate the GCP key only when replacing it in Grafana.
+4. Add a **Google Cloud Monitoring** data source using the same JWT file and service-account impersonation target. Set the project to `$PROJECT_ID`, click **Save & test**, and use PromQL queries for Managed Prometheus metrics.
+5. Import `grafana/dashboards/platform-overview.json`, map `DS_BIGQUERY` to BigQuery and `DS_PROMETHEUS` to Google Cloud Monitoring, then keep the `project` variable default set to `$PROJECT_ID`.
+6. Keep the key active while Grafana Cloud uses it. Delete the local copy after upload; revoke/rotate the GCP key only when replacing it in Grafana.
+
+Cloud Service Mesh is managed through Fleet memberships and injects an Envoy sidecar into each app pod. Standalone pricing currently estimates about $0.50 per mesh client per month; at 12 minimum app replicas this is about $6/month, before any custom metrics or scale-out. Confirm current billing terms in Cloud Billing.
 
 ## 9. Teardown
 ```bash
