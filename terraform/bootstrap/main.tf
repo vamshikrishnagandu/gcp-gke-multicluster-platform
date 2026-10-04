@@ -181,19 +181,14 @@ resource "google_iam_workload_identity_pool_provider" "github" {
     "attribute.ref"              = "assertion.ref"
   }
 
-  # Use immutable IDs and non-sub claims because new GitHub repos include IDs in sub.
+  # Restrict cloud access to main/prod jobs; pull_request claims do not distinguish fork PRs.
   attribute_condition = <<-EOT
     assertion.repository == '${var.github_repository}' &&
     assertion.repository_id == '${var.github_repository_id}' &&
     assertion.repository_owner_id == '${var.github_repository_owner_id}' &&
-    (
-      assertion.event_name == 'pull_request' ||
-      (
-        assertion.ref == 'refs/heads/main' &&
-        assertion.environment == 'prod' &&
-        (assertion.event_name == 'push' || assertion.event_name == 'workflow_dispatch')
-      )
-    )
+    assertion.ref == 'refs/heads/main' &&
+    assertion.environment == 'prod' &&
+    (assertion.event_name == 'push' || assertion.event_name == 'workflow_dispatch')
   EOT
 
   oidc {

@@ -39,6 +39,7 @@ for entry in "${CLUSTERS[@]}"; do
   for app in app1 app2; do
     helm upgrade --install "$app" "${ROOT}/charts/app" \
       --namespace "$app" --create-namespace \
+      --take-ownership --force-conflicts \
       --set-string "appName=$app" \
       --set-string "projectID=$PROJECT_ID" \
       --set-string "image=$(image_for "$app")" \
@@ -49,6 +50,7 @@ for entry in "${CLUSTERS[@]}"; do
     echo "    config cluster -> upgrading Gateway release"
     helm upgrade --install platform-gateway "${ROOT}/charts/gateway" \
       --namespace gateway-infra --create-namespace \
+      --take-ownership --force-conflicts \
       --wait --timeout 10m
   fi
 

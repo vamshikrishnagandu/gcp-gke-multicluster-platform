@@ -45,8 +45,8 @@ jobs:
 
   plan-apply:
     needs: static-checks
-    # Skip until bootstrap has run and set the repo variables (avoids a red build on first push)
-    if: vars.GCP_WIF_PROVIDER != ''
+    # Only main/prod jobs receive cloud credentials; PRs still run static checks.
+    if: github.ref == 'refs/heads/main' && vars.GCP_WIF_PROVIDER != ''
     runs-on: ubuntu-latest
     environment: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && 'prod' || '' }}
     defaults:
@@ -91,6 +91,8 @@ jobs:
 
       - name: plan
         id: plan
+        env:
+          ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
         run: |
           set -o pipefail
           terraform plan -input=false -no-color -out=tfplan \
@@ -101,6 +103,15 @@ jobs:
             -var="binauthz_enforcement_mode=${{ vars.BINAUTHZ_MODE || 'ENFORCED_BLOCK_AND_AUDIT_LOG' }}" \
             -var="uptime_host=${{ vars.GATEWAY_IP }}" \
             -var="alert_email=${ALERT_EMAIL}" | tee plan.txt
+
+      - name: reject destructive plans
+        run: |
+          set -o pipefail
+          deletions=$(terraform show -json tfplan | jq '[.resource_changes[]? | select(.change.actions | contains(["delete"]))] | length')
+          if [[ "$deletions" -gt 0 ]]; then
+            echo "::error::Refusing to auto-apply a plan with $deletions deletion(s)"
+            exit 1
+          fi
 
       - name: comment plan on PR
         if: github.event_name == 'pull_request'
